@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_survey_question_match_manager,survey.question.match manager,model_survey_question_match,survey.group_survey_manager,1,1,1,1
+access_survey_question_match_user,survey.question.match user,model_survey_question_match,survey.group_survey_user,1,1,1,0

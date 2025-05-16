@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="survey_question_form_inherit" model="ir.ui.view">
+        <field name="name">survey.question.form.inherit</field>
+        <field name="model">survey.question</field>
+        <field name="inherit_id" ref="survey.survey_question_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@class='mx-lg-auto w-lg-50 d-none d-sm-block o_preview_questions bg-light']" position="inside">
+                <div invisible="question_type != 'match_following'" role="img" aria-label="Match the following" title="Match the following">
+                    <span>Match the following</span>
+                    <div class="o_match_lines_preview">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+                            <span class="mx-2">─────</span>
+                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+                            <span class="mx-2">─────</span>
+                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+
+            <xpath expr="//page[@name='answers']" position="inside">
+                <field name="match_following_pairs" context="{'default_question_id': id}" invisible="question_type != 'match_following'">
+                    <tree editable="bottom">
+                        <field name="left_option"/>
+                        <field name="right_option"/>
+                        <field name="score"/>
+                    </tree>
+                </field>
+            </xpath>
+        </field>
+    </record>
+</odoo>

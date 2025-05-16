@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="question_match_following" name="Question: Match Following">
+        <t t-set="answer_line" t-value="answer_lines.filtered(lambda line: line.question_id == question)"/>
+        <!-- Add this to your existing template -->
+        <div class="o_survey_match_following_wrapper" t-att-data-name="question.id"
+             t-att-data-question-type="question.question_type">
+            <div class="row">
+                <!-- Left Column - Questions -->
+                <div class="col-md-6 o_match_questions">
+                    <h4>Questions</h4>
+                    <t t-foreach="question.match_following_pairs" t-as="pair">
+                        <div class="o_match_item mb-3 p-3 border-start" t-att-data-pair-id="pair.id">
+                            <span t-esc="pair.left_option"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Right Column - Answers -->
+                <div class="col-md-6 o_match_answers">
+                    <h4>Answers</h4>
+                    <t t-foreach="question.match_following_pairs" t-as="pair">
+                        <div class="o_match_item mb-3 p-3 border-start" t-att-data-pair-id="pair.id">
+                            <span t-esc="pair.right_option"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Hidden input to store matches -->
+            <input type="hidden"
+                   t-att-name="question.id"
+                   t-att-value="answer_line[0].value_match_following if answer_line else ''"/>
+        </div>
+    </template>
+
+    <template id="question_container_inherit" inherit_id="survey.question_container">
+        <xpath expr="." position="inside">
+            <t t-if="question.question_type == 'match_following'" t-call="custom_elearn.question_match_following"/>
+        </xpath>
+    </template>
+</odoo>
