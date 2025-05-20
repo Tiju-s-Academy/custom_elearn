@@ -1,11 +1,7 @@
 {
     'name': 'Survey Match Following',
     'version': '17.0.1.0.0',
-    'depends': [
-        'base',
-        'web',
-        'survey',
-    ],
+    'depends': ['survey'],
     'author': 'Tijus Academy',
     'category': 'Academic',
     'summary': 'Add new e-learn quiz type',
@@ -16,7 +12,7 @@
         'views/survey_match_templates.xml',
     ],
     'assets': {
-        'survey.survey_assets': [
+        'web.assets_common': [
             'custom_elearn/static/src/js/survey_match_following.js',
         ],
     },

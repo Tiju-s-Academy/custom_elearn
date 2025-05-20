@@ -1,12 +1,13 @@
 from odoo import http
 from odoo.http import request
+from odoo.addons.survey.controllers.main import Survey
 import json
 import logging
 import random
 
 _logger = logging.getLogger(__name__)
 
-class SurveyMatchFollowing(http.Controller):
+class SurveyMatchFollowing(Survey):
     
     @http.route(['/survey/submit/<string:survey_token>/<string:question_id>'], 
                 type='json', auth='public', website=True, csrf=False)
@@ -84,46 +85,52 @@ class SurveyMatchFollowing(http.Controller):
             _logger.exception(f"Error processing match following submission: {str(e)}")
             return []
     
+    @http.route(['/survey/match_following/test'], type='http', auth='public', website=True)
+    def match_following_test(self, **kw):
+        """Test page for match following questions"""
+        return request.render('custom_elearn.match_following_question_template')
+    
+    # Create a demo page to test match following
     @http.route(['/survey/match_following/demo'], type='http', auth='public', website=True)
     def match_following_demo(self, **kw):
-        """Show a demo page with match following questions"""
-        
-        # Find match following questions or create demo if none exist
-        questions = request.env['survey.question'].sudo().search([('question_type', '=', 'match_following')])
+        """Demo page for match following question type"""
+        # Find any match following questions or create a sample one
+        questions = request.env['survey.question'].sudo().search([
+            ('question_type', '=', 'match_following')
+        ], limit=1)
         
         if not questions:
-            # Create demo question with pairs
-            demo_survey = request.env['survey.survey'].sudo().create({
+            # Create a demo survey with a match following question
+            survey = request.env['survey.survey'].sudo().create({
                 'title': 'Match Following Demo',
-                'access_token': 'demo',
-                'access_mode': 'public'
+                'access_token': 'demo_match_following',
+                'access_mode': 'public',
             })
             
-            demo_question = request.env['survey.question'].sudo().create({
-                'title': 'Match the items correctly',
-                'survey_id': demo_survey.id,
+            question = request.env['survey.question'].sudo().create({
+                'title': 'Match the following items',
+                'survey_id': survey.id,
                 'question_type': 'match_following',
-                'shuffle_right_options': True
+                'shuffle_right_options': True,
             })
             
-            # Create demo pairs
+            # Add some pairs
             pairs = [
-                ('Apple', 'Fruit', 1.0),
-                ('Car', 'Vehicle', 1.0),
-                ('Python', 'Programming Language', 1.0),
-                ('Odoo', 'ERP System', 1.0)
+                ('Apple', 'Fruit'),
+                ('Dog', 'Animal'),
+                ('Car', 'Vehicle'),
+                ('Chair', 'Furniture')
             ]
             
-            for left, right, score in pairs:
+            for i, (left, right) in enumerate(pairs):
                 request.env['survey.question.match'].sudo().create({
-                    'question_id': demo_question.id,
+                    'question_id': question.id,
+                    'sequence': i + 1,
                     'left_option': left,
                     'right_option': right,
-                    'score': score
+                    'score': 1.0
                 })
                 
-            questions = request.env['survey.question'].sudo().search([('id', '=', demo_question.id)])
+            questions = request.env['survey.question'].sudo().search([('id', '=', question.id)])
         
-        return request.render('custom_elearn.match_following_demo_page', {
-            'questions': questions
-        })
+        return request.render('custom_elearn.match_following_question_template')

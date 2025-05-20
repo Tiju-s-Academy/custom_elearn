@@ -71,4 +71,71 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         this.$('input[type="hidden"]').val(JSON.stringify(matches));
     }
 });
+
+(function() {
+    'use strict';
+    
+    // Initialize when the DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        initMatchFollowing();
+    });
+    
+    // Main initialization function
+    function initMatchFollowing() {
+        // Find all match following containers
+        var containers = document.querySelectorAll('.match_following_container');
+        if (containers.length === 0) return;
+        
+        // Set up each container
+        containers.forEach(function(container) {
+            setupDragDrop(container);
+        });
+    }
+    
+    // Set up drag and drop for a container
+    function setupDragDrop(container) {
+        // Make items draggable
+        var items = container.querySelectorAll('.o_match_item');
+        items.forEach(function(item) {
+            item.setAttribute('draggable', true);
+            
+            // Add event listeners
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.textContent);
+                this.classList.add('dragging');
+            });
+            
+            item.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+        });
+        
+        // Set up drop zones
+        var dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
+        dropZones.forEach(function(zone) {
+            zone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drop-zone-active');
+            });
+            
+            zone.addEventListener('dragleave', function() {
+                this.classList.remove('drop-zone-active');
+            });
+            
+            zone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                var data = e.dataTransfer.getData('text/plain');
+                
+                // Get the dragged item and mark it as matched
+                var draggedItem = document.querySelector('.dragging');
+                if (draggedItem) {
+                    draggedItem.classList.add('matched');
+                    draggedItem.classList.remove('dragging');
+                }
+                
+                this.classList.remove('drop-zone-active');
+            });
+        });
+    }
+})();
 });
