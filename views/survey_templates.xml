@@ -1,59 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Direct approach: Inject assets into survey templates -->
-<!--    <template id="survey_page" inherit_id="survey.survey_page" name="Survey Match Following Assets">-->
-<!--        <xpath expr="//head" position="inside">-->
-<!--            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>-->
-<!--            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>-->
-<!--        </xpath>-->
-<!--    </template>-->
-
-    <template id="question_match_following" name="Question: Match Following">
-        <t t-set="answer_line" t-value="answer_lines.filtered(lambda line: line.question_id == question)"/>
-        <!-- Add this to your existing template -->
-        <div class="o_survey_match_following_wrapper" t-att-data-name="question.id"
-             t-att-data-question-type="question.question_type">
-            <div class="row">
-                <!-- Left Column - Questions -->
-                <div class="col-md-6 o_match_questions">
-                    <h4>Questions</h4>
-                    <t t-foreach="question.match_following_pairs" t-as="pair">
-                        <div class="o_match_item mb-3 p-3 border-start" t-att-data-pair-id="pair.id">
-                            <span t-esc="pair.left_option"/>
-                        </div>
-                    </t>
-                </div>
-
-                <!-- Right Column - Answers -->
-                <div class="col-md-6 o_match_answers">
-                    <h4>Answers</h4>
-                    <t t-foreach="question.match_following_pairs" t-as="pair">
-                        <div class="o_match_item mb-3 p-3 border-start" t-att-data-pair-id="pair.id">
-                            <span t-esc="pair.right_option"/>
-                        </div>
-                    </t>
-                </div>
-            </div>
-
-            <!-- Hidden input to store matches -->
-            <input type="hidden"
-                   t-att-name="question.id"
-                   t-att-value="answer_line[0].value_match_following if answer_line else ''"/>
-        </div>
-    </template>
-
-    <template id="question_container_inherit" inherit_id="survey.question_container">
-        <xpath expr="." position="inside">
-            <t t-if="question.question_type == 'match_following'" t-call="custom_elearn.question_match_following"/>
-        </xpath>
-    </template>
-
-    <!-- Template for match following question type -->
+    <!-- Standalone template for match following question type -->
     <template id="match_following_question_template" name="Survey Match Following Question">
-        <div t-if="question.question_type == 'match_following'" 
-             class="match_following_container js_question-wrapper" 
-             t-att-data-question-id="question.id">
-             
+        <div class="match_following_container js_question-wrapper" t-att-data-question-id="question.id">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
@@ -76,43 +25,65 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Hidden input to store the matches -->
-            <input type="hidden" name="question_{question.id}" t-att-value="user_input_line.value_match_following if user_input_line else None"/>
-            
-            <!-- Add question ID in multiple formats to help identification -->
-            <input type="hidden" class="question_id_reference" t-att-value="question.id"/>
+            <input type="hidden" t-att-name="'question_%s' % question.id" t-att-value="user_input_line.value_match_following if user_input_line else None"/>
         </div>
     </template>
     
-    <!-- Inject our template into the survey question template -->
-    <template id="survey_question_inherit" inherit_id="survey.question">
-        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
-            <t t-call="custom_elearn.match_following_question_template"/>
+    <!-- In Odoo 17, we need to find the correct survey templates to extend -->
+    <!-- Option 1: Try to extend the survey question render template -->
+    <template id="survey_question_match_following" inherit_id="survey.survey_question_section">
+        <xpath expr="//t[@t-elif='question.question_type == &quot;simple_choice&quot;']" position="after">
+            <t t-elif="question.question_type == 'match_following'">
+                <t t-call="custom_elearn.match_following_question_template"/>
+            </t>
         </xpath>
     </template>
-
-    <template id="survey_question_inherit" inherit_id="survey.survey_fill_form_page">
-        <xpath expr="//div[hasclass('o_survey_form')]" position="inside">
-            <!-- Add custom JavaScript initialization -->
+    
+    <!-- Option 2: Direct injection into survey layout -->
+    <template id="survey_layout_inject" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <!-- Add match following support script -->
             <script type="text/javascript">
                 $(document).ready(function() {
-                    // Initialize match following functionality when the page is ready
-                    if (window.survey_match_following) {
-                        window.survey_match_following.initMatchFollowing();
+                    // Wait for page to load, then check if we need to handle match following
+                    setTimeout(function() {
+                        // Scan for questions of type match_following
+                        var $questions = $('.o_survey_form .js_question-wrapper');
+                        $questions.each(function() {
+                            var $question = $(this);
+                            var questionType = $question.data('questionType');
+                            if (questionType === 'match_following') {
+                                // Create match following container if it doesn't exist
+                                if (!$question.find('.match_following_container').length) {
+                                    console.log('Initializing match following for question:', $question.data('questionId'));
+                                    initMatchFollowing($question);
+                                }
+                            }
+                        });
+                    }, 500);
+                    
+                    function initMatchFollowing($question) {
+                        // Get match following data
+                        var questionId = $question.data('questionId');
+                        var questionTitle = $question.find('.o_survey_question_text').text();
+                        
+                        console.log('Match following initialized for:', questionTitle, '(ID:', questionId, ')');
+                        
+                        // If we need to dynamically create the structure
+                        if (window.customElearnMatchFollowing && window.customElearnMatchFollowing.setup) {
+                            window.customElearnMatchFollowing.setup();
+                        }
                     }
                 });
             </script>
         </xpath>
     </template>
-
-    <!-- Add CSRF token to the survey page -->
-    <template id="survey_page_inherit" inherit_id="survey.survey_layout">
-        <xpath expr="//head" position="inside">
-            <script type="text/javascript">
-                // Make CSRF token available to JavaScript
-                var csrf_token = "<t t-esc="request.csrf_token()"/>";
-            </script>
-        </xpath>
+    
+    <!-- Option 3: Direct rendering override -->
+    <template id="question_match_following_direct">
+        <div class="match_following_container js_question-wrapper" t-att-data-question-id="question.id">
+            <!-- Match following content -->
+            <!-- ... -->
+        </div>
     </template>
 </odoo>

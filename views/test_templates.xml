@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Test page for match following questions -->
+    <template id="match_following_test_page" name="Match Following Test Page">
+        <t t-call="website.layout">
+            <div class="container mt-4">
+                <h1>Match Following Questions Test</h1>
+                
+                <div class="mt-4">
+                    <t t-if="questions">
+                        <t t-foreach="questions" t-as="question">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h3><t t-esc="question.title"/></h3>
+                                    <small>ID: <t t-esc="question.id"/></small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="match_following_container" t-att-data-question-id="question.id">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h5>Items</h5>
+                                                <div class="o_match_questions">
+                                                    <t t-foreach="question.match_following_pairs" t-as="pair">
+                                                        <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                                            <span t-field="pair.left_option"/>
+                                                        </div>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h5>Matches</h5>
+                                                <div class="o_match_answers">
+                                                    <t t-foreach="question.match_following_pairs" t-as="pair">
+                                                        <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                                            <span t-field="pair.right_option"/>
+                                                        </div>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" t-att-name="'question_%s' % question.id" value="[]"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+                    <t t-else="">
+                        <div class="alert alert-info">
+                            No match following questions found. Please create some in your surveys.
+                        </div>
+                    </t>
+                </div>
+            </div>
+            
+            <!-- Include our assets -->
+            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </t>
+    </template>
+</odoo>
