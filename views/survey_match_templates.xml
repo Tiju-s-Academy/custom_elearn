@@ -25,9 +25,9 @@
         </div>
     </template>
     
-    <!-- Add CSS for match following directly into the layout -->
-    <template id="assets_common_minimal" inherit_id="web.assets_common">
-        <xpath expr="." position="inside">
+    <!-- Add CSS for match following directly into survey layout -->
+    <template id="survey_layout_extend" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
             <style>
                 .match_following_container { padding: 15px; background-color: #f8f9fa; border-radius: 4px; margin-bottom: 20px; }
                 .o_match_questions, .o_match_answers { min-height: 150px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px; background-color: #fff; }
@@ -36,6 +36,59 @@
                 .o_match_item.matched { background-color: #d4edda; border-color: #c3e6cb; }
                 .drop-zone-active { background-color: #e8f4ff; border-color: #b8daff; }
             </style>
+            
+            <script type="text/javascript">
+                // Simple script to initialize drag and drop
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Find containers
+                    var containers = document.querySelectorAll('.match_following_container');
+                    if (containers.length === 0) return;
+                    
+                    // Initialize each container
+                    containers.forEach(function(container) {
+                        // Make items draggable
+                        var items = container.querySelectorAll('.o_match_item');
+                        items.forEach(function(item) {
+                            item.setAttribute('draggable', true);
+                            
+                            item.addEventListener('dragstart', function(e) {
+                                e.dataTransfer.setData('text', this.textContent);
+                                this.classList.add('dragging');
+                            });
+                            
+                            item.addEventListener('dragend', function() {
+                                this.classList.remove('dragging');
+                            });
+                        });
+                        
+                        // Set up drop zones
+                        var zones = container.querySelectorAll('.o_match_questions, .o_match_answers');
+                        zones.forEach(function(zone) {
+                            zone.addEventListener('dragover', function(e) {
+                                e.preventDefault();
+                                this.classList.add('drop-zone-active');
+                            });
+                            
+                            zone.addEventListener('dragleave', function() {
+                                this.classList.remove('drop-zone-active');
+                            });
+                            
+                            zone.addEventListener('drop', function(e) {
+                                e.preventDefault();
+                                var text = e.dataTransfer.getData('text');
+                                var draggedItem = document.querySelector('.dragging');
+                                
+                                if (draggedItem) {
+                                    draggedItem.classList.add('matched');
+                                    draggedItem.classList.remove('dragging');
+                                }
+                                
+                                this.classList.remove('drop-zone-active');
+                            });
+                        });
+                    });
+                });
+            </script>
         </xpath>
     </template>
 </odoo>
