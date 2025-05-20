@@ -29,17 +29,8 @@
         </div>
     </template>
     
-    <!-- In Odoo 17, we need to find the correct survey templates to extend -->
-    <!-- Option 1: Try to extend the survey question render template -->
-    <template id="survey_question_match_following" inherit_id="survey.survey_question_section">
-        <xpath expr="//t[@t-elif='question.question_type == &quot;simple_choice&quot;']" position="after">
-            <t t-elif="question.question_type == 'match_following'">
-                <t t-call="custom_elearn.match_following_question_template"/>
-            </t>
-        </xpath>
-    </template>
-    
-    <!-- Option 2: Direct injection into survey layout -->
+    <!-- In Odoo 17, we need to find the correct templates to extend -->
+    <!-- Just use survey.layout instead since it should always exist -->
     <template id="survey_layout_inject" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
             <!-- Add match following support script -->
@@ -76,14 +67,73 @@
                     }
                 });
             </script>
+            
+            <!-- Add CSS for match following -->
+            <style>
+                .match_following_container {
+                    margin: 20px 0;
+                }
+                
+                .o_match_questions, .o_match_answers {
+                    min-height: 100px;
+                    border: 1px dashed #ccc;
+                    padding: 10px;
+                    margin-bottom: 15px;
+                    border-radius: 4px;
+                }
+                
+                .o_match_item {
+                    background-color: #f8f9fa;
+                    border: 1px solid #ddd;
+                    padding: 8px 12px;
+                    margin: 5px 0;
+                    border-radius: 4px;
+                    cursor: move;
+                }
+                
+                .o_match_item.dragging {
+                    opacity: 0.5;
+                }
+                
+                .o_match_item.matched {
+                    background-color: #d4edda;
+                    border-color: #c3e6cb;
+                }
+                
+                .drop-zone-active {
+                    background-color: #f2f7ff;
+                    border-color: #b8daff;
+                }
+            </style>
         </xpath>
     </template>
     
-    <!-- Option 3: Direct rendering override -->
-    <template id="question_match_following_direct">
-        <div class="match_following_container js_question-wrapper" t-att-data-question-id="question.id">
-            <!-- Match following content -->
-            <!-- ... -->
+    <!-- Create a direct template that can be injected -->
+    <template id="survey_question_match_following_container">
+        <div t-if="question.question_type == 'match_following'" class="match_following_container" t-att-data-question-id="question.id">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="o_match_questions">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                <span t-field="pair.left_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Matches</h5>
+                    <div class="o_match_answers">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                <span t-field="pair.right_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" t-att-name="'question_%s' % question.id" value="[]"/>
         </div>
     </template>
 </odoo>

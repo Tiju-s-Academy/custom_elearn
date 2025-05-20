@@ -19,4 +19,17 @@
             <t t-call="custom_elearn.survey_match_following_assets"/>
         </xpath>
     </template>
+
+    <template id="survey_match_assets" name="Survey Match Following Assets">
+        <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following_helper.js"/>
+    </template>
+    
+    <!-- Inject assets into survey layout -->
+    <template id="survey_layout_assets" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.survey_match_assets"/>
+        </xpath>
+    </template>
 </odoo>
