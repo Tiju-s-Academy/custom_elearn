@@ -475,3 +475,18 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         });
     }
 })();
+
+// Extremely minimal implementation to avoid conflicts
+var customMatchFollowing = {
+    init: function() {
+        console.log("Match Following: Initialized");
+    }
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Run with delay to avoid interfering with Odoo's JS
+    setTimeout(function() {
+        customMatchFollowing.init();
+    }, 2000);
+});

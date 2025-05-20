@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Simply include our JavaScript in survey layout -->
-    <template id="survey_match_assets" inherit_id="survey.layout">
-        <xpath expr="//head" position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-        </xpath>
+    <!-- Minimal template that just includes the JS file -->
+    <template id="minimal_survey_match_assets" name="Survey Match Assets">
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
     </template>
 </odoo>
