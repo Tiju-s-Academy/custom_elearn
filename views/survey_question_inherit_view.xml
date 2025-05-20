@@ -29,7 +29,7 @@
                 </page>
             </xpath>
             
-            <!-- Add preview to question form - use a different approach without using the preview div -->
+            <!-- Add preview to question form without using Owl directives -->
             <xpath expr="//notebook" position="before">
                 <div class="o_match_following_preview" attrs="{'invisible': [('question_type', '!=', 'match_following')]}">
                     <h5>Match Following Preview</h5>
@@ -37,17 +37,17 @@
                         <div class="col-6">
                             <h6>Left Options</h6>
                             <div class="match_left_preview p-2 border rounded">
-                                <div class="match_item bg-light p-2 mb-2 rounded" t-foreach="match_following_pairs" t-as="pair">
-                                    <field name="left_option" nolabel="1" readonly="1" />
-                                </div>
+                                <!-- Use a static preview instead of t-foreach -->
+                                <div class="match_item bg-light p-2 mb-2 rounded">Left Option Preview</div>
+                                <div class="match_item bg-light p-2 mb-2 rounded">Drag items from here...</div>
                             </div>
                         </div>
                         <div class="col-6">
                             <h6>Right Options</h6>
                             <div class="match_right_preview p-2 border rounded">
-                                <div class="match_item bg-light p-2 mb-2 rounded" t-foreach="match_following_pairs" t-as="pair">
-                                    <field name="right_option" nolabel="1" readonly="1" />
-                                </div>
+                                <!-- Use a static preview instead of t-foreach -->
+                                <div class="match_item bg-light p-2 mb-2 rounded">Right Option Preview</div>
+                                <div class="match_item bg-light p-2 mb-2 rounded">...to match here</div>
                             </div>
                         </div>
                     </div>
