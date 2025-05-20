@@ -10,6 +10,7 @@
         'security/ir.model.access.csv',
         'views/survey_question_inherit_view.xml',
         'views/survey_templates.xml',
+        'views/assets.xml',
     ],
     'assets': {
         'web.assets_frontend': [

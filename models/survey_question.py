@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import fields, models, api
 
 
 class SurveyQuestion(models.Model):
@@ -12,3 +12,21 @@ class SurveyQuestion(models.Model):
         'survey.question.match', 'question_id',
         string='Matching Pairs'
     )
+
+    def _get_match_following_score(self):
+        """Get total possible score for match following question"""
+        self.ensure_one()
+        if self.question_type != 'match_following':
+            return 0
+        return sum(pair.score for pair in self.match_following_pairs)
+
+    def _prepare_result_data(self, user_input_lines, answer_count, scored_only):
+        result = super(SurveyQuestion, self)._prepare_result_data(user_input_lines, answer_count, scored_only)
+
+        if self.question_type == 'match_following':
+            result['match_following_data'] = {
+                'pairs': [(p.id, p.left_option, p.right_option) for p in self.match_following_pairs],
+                'total_score': self._get_match_following_score()
+            }
+
+        return result
