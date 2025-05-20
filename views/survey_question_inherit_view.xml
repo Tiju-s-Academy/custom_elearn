@@ -1,37 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- Enhance the survey question form to support match following type -->
     <record id="survey_question_form_inherit" model="ir.ui.view">
         <field name="name">survey.question.form.inherit</field>
         <field name="model">survey.question</field>
         <field name="inherit_id" ref="survey.survey_question_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@class='mx-lg-auto w-lg-50 d-none d-sm-block o_preview_questions bg-light']" position="inside">
-                <div invisible="question_type != 'match_following'" role="img" aria-label="Match the following" title="Match the following">
-                    <span>Match the following</span>
-                    <div class="o_match_lines_preview">
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
-                            <span class="mx-2">─────</span>
-                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+            <!-- Add match_following option to question_type selection field -->
+            <field name="question_type" position="attributes">
+                <attribute name="options" add="{'match_following': 'Match Following'}" separator=","/>
+            </field>
+            
+            <!-- Add match following pairs tab -->
+            <xpath expr="//page[@name='answers']" position="after">
+                <page string="Match Following Pairs" attrs="{'invisible': [('question_type', '!=', 'match_following')]}">
+                    <field name="match_following_pairs" context="{'default_question_id': id}">
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="left_option"/>
+                            <field name="right_option"/>
+                            <field name="score"/>
+                        </tree>
+                    </field>
+                    <group>
+                        <field name="shuffle_right_options" />
+                        <field name="shuffle_left_options" />
+                    </group>
+                </page>
+            </xpath>
+            
+            <!-- Add preview of match following in the question editor -->
+            <xpath expr="//div[@name='preview']" position="inside">
+                <div t-if="question_type == 'match_following'" class="match_following_preview">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Left Options</h6>
+                            <div class="match_left_preview">
+                                <div class="match_item" t-foreach="match_following_pairs" t-as="pair">
+                                    <span t-esc="pair.left_option" />
+                                </div>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
-                            <span class="mx-2">─────</span>
-                            <i class="fa fa-minus fa-4x" role="img" aria-label="Single Line" title="Single Line"/>
+                        <div class="col-6">
+                            <h6>Right Options</h6>
+                            <div class="match_right_preview">
+                                <div class="match_item" t-foreach="match_following_pairs" t-as="pair">
+                                    <span t-esc="pair.right_option" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </xpath>
-
-            <!-- Add data-type attribute to help frontend identify question type -->
-            <xpath expr="//page[@name='answers']" position="inside">
-                <field name="match_following_pairs" context="{'default_question_id': id}" invisible="question_type != 'match_following'" data-type="match_following">
-                    <tree editable="bottom">
-                        <field name="left_option"/>
-                        <field name="right_option"/>
-                        <field name="score"/>
-                    </tree>
-                </field>
             </xpath>
         </field>
     </record>

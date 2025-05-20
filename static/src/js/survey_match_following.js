@@ -1,6 +1,5 @@
 /**
  * Vanilla JavaScript implementation for match following questions
- * This avoids dependency issues with the Odoo module system
  */
 (function() {
     'use strict';
@@ -31,6 +30,9 @@
 
     // Initialize a single match following container
     function initContainer(container) {
+        // Shuffle options if needed
+        shuffleOptions(container);
+        
         // Set up drag and drop
         const items = container.querySelectorAll('.o_match_item');
         items.forEach(function(item) {
@@ -52,11 +54,42 @@
         // Load any stored answers
         loadStoredAnswers(container);
     }
+    
+    // Shuffle left and right options based on container settings
+    function shuffleOptions(container) {
+        const shuffleLeft = container.getAttribute('data-shuffle-left') === 'true';
+        const shuffleRight = container.getAttribute('data-shuffle-right') === 'true';
+        
+        if (shuffleLeft) {
+            shuffleItemsInContainer(container.querySelector('.o_match_questions'));
+        }
+        
+        if (shuffleRight) {
+            shuffleItemsInContainer(container.querySelector('.o_match_answers'));
+        }
+    }
+    
+    // Shuffle items within a container
+    function shuffleItemsInContainer(container) {
+        if (!container) return;
+        
+        const items = Array.from(container.children);
+        if (items.length <= 1) return;
+        
+        // Fisher-Yates shuffle algorithm
+        for (let i = items.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            // Append to reorder in DOM
+            if (i !== j) {
+                container.appendChild(items[j]);
+            }
+        }
+    }
 
     // Load stored answers if available
     function loadStoredAnswers(container) {
         const hiddenInput = container.querySelector('input[type="hidden"]');
-        if (!hiddenInput || !hiddenInput.value) return;
+        if (!hiddenInput || !hiddenInput.value || hiddenInput.value === '[]') return;
 
         try {
             const matches = JSON.parse(hiddenInput.value);
@@ -67,6 +100,13 @@
                     if (item) {
                         item.setAttribute('data-matched', 'true');
                         item.classList.add('matched');
+                    }
+                    
+                    // Also highlight the matched answers
+                    const answerItem = container.querySelector(`.o_match_answers .o_match_item[data-pair-id="${pairId}"]`);
+                    if (answerItem) {
+                        answerItem.classList.add('matched');
+                        answerItem.classList.add(`matched-with-${pairId}`);
                     }
                 }
             });

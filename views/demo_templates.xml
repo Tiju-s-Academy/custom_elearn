@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="match_following_demo_page" name="Match Following Demo">
+        <t t-call="website.layout">
+            <div class="container mt-4 mb-5">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2">
+                        <h1 class="mb-4">Match Following Questions Demo</h1>
+                        
+                        <div class="alert alert-info">
+                            This is a demo of the Match Following question type. Drag items from left column to match with items in right column.
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="o_survey_form">
+                                    <t t-foreach="questions" t-as="question">
+                                        <div class="js_question-wrapper" t-att-data-question-id="question.id">
+                                            <h2 class="o_survey_question_text mb-4" t-esc="question.title"/>
+                                            
+                                            <t t-call="custom_elearn.match_following_question_template"/>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Include necessary assets -->
+            <t t-call-assets="custom_elearn.survey_match_assets"/>
+        </t>
+    </template>
+</odoo>

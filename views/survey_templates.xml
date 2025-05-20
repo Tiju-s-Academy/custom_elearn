@@ -1,98 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Standalone template for match following question type -->
+    <!-- Template for match following question type -->
     <template id="match_following_question_template" name="Survey Match Following Question">
-        <div class="match_following_container js_question-wrapper" t-att-data-question-id="question.id">
+        <div class="match_following_container js_question-wrapper" 
+             t-att-data-question-id="question.id" 
+             t-att-data-shuffle-left="question.shuffle_left_options"
+             t-att-data-shuffle-right="question.shuffle_right_options">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
                     <div class="o_match_questions">
                         <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                            <div class="o_match_item" 
+                                t-att-data-pair-id="pair.id"
+                                t-att-data-score="pair.score">
                                 <span t-field="pair.left_option"/>
                             </div>
                         </t>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <h5>Matches</h5>
+                    <h5>Drag to match</h5>
                     <div class="o_match_answers">
                         <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                            <div class="o_match_item" 
+                                t-att-data-pair-id="pair.id"
+                                t-att-data-score="pair.score">
                                 <span t-field="pair.right_option"/>
                             </div>
                         </t>
                     </div>
                 </div>
             </div>
-            <input type="hidden" t-att-name="'question_%s' % question.id" t-att-value="user_input_line.value_match_following if user_input_line else None"/>
+            <input type="hidden" t-att-name="'question_%s' % question.id" t-att-value="user_input_line.value_match_following if user_input_line else '[]'"/>
         </div>
     </template>
     
-    <!-- In Odoo 17, we need to find the correct templates to extend -->
-    <!-- Just use survey.layout instead since it should always exist -->
+    <!-- Inject into survey layout -->
     <template id="survey_layout_inject" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
-            <!-- Add match following support script -->
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    // Wait for page to load, then check if we need to handle match following
-                    setTimeout(function() {
-                        // Scan for questions of type match_following
-                        var $questions = $('.o_survey_form .js_question-wrapper');
-                        $questions.each(function() {
-                            var $question = $(this);
-                            var questionType = $question.data('questionType');
-                            if (questionType === 'match_following') {
-                                // Create match following container if it doesn't exist
-                                if (!$question.find('.match_following_container').length) {
-                                    console.log('Initializing match following for question:', $question.data('questionId'));
-                                    initMatchFollowing($question);
-                                }
-                            }
-                        });
-                    }, 500);
-                    
-                    function initMatchFollowing($question) {
-                        // Get match following data
-                        var questionId = $question.data('questionId');
-                        var questionTitle = $question.find('.o_survey_question_text').text();
-                        
-                        console.log('Match following initialized for:', questionTitle, '(ID:', questionId, ')');
-                        
-                        // If we need to dynamically create the structure
-                        if (window.customElearnMatchFollowing &amp;&amp; window.customElearnMatchFollowing.setup) {
-                            window.customElearnMatchFollowing.setup();
-                        }
-                    }
-                });
-            </script>
-            
-            <!-- Add CSS for match following -->
+            <!-- Add styles for match following -->
             <style>
                 .match_following_container {
                     margin: 20px 0;
                 }
                 
                 .o_match_questions, .o_match_answers {
-                    min-height: 100px;
+                    min-height: 150px;
                     border: 1px dashed #ccc;
+                    border-radius: 4px;
                     padding: 10px;
                     margin-bottom: 15px;
-                    border-radius: 4px;
+                    background-color: #f9f9f9;
                 }
                 
                 .o_match_item {
-                    background-color: #f8f9fa;
-                    border: 1px solid #ddd;
-                    padding: 8px 12px;
-                    margin: 5px 0;
+                    background-color: #ffffff;
+                    border: 1px solid #dee2e6;
                     border-radius: 4px;
+                    padding: 10px 15px;
+                    margin-bottom: 8px;
                     cursor: move;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
                 }
                 
                 .o_match_item.dragging {
                     opacity: 0.5;
+                    transform: scale(0.98);
                 }
                 
                 .o_match_item.matched {
@@ -101,39 +76,40 @@
                 }
                 
                 .drop-zone-active {
-                    background-color: #f2f7ff;
+                    background-color: #e8f4ff;
                     border-color: #b8daff;
+                }
+                
+                /* Preview styles in admin */
+                .match_following_preview {
+                    background: #f5f5f5;
+                    padding: 10px;
+                    border-radius: 4px;
+                }
+                
+                .match_left_preview, .match_right_preview {
+                    border: 1px dashed #ccc;
+                    min-height: 100px;
+                    padding: 8px;
+                    background: white;
+                }
+                
+                .match_item {
+                    background: #e9ecef;
+                    padding: 5px 10px;
+                    margin-bottom: 5px;
+                    border-radius: 3px;
                 }
             </style>
         </xpath>
     </template>
     
-    <!-- Create a direct template that can be injected -->
-    <template id="survey_question_match_following_container">
-        <div t-if="question.question_type == 'match_following'" class="match_following_container" t-att-data-question-id="question.id">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Items</h5>
-                    <div class="o_match_questions">
-                        <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id">
-                                <span t-field="pair.left_option"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h5>Matches</h5>
-                    <div class="o_match_answers">
-                        <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id">
-                                <span t-field="pair.right_option"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-            <input type="hidden" t-att-name="'question_%s' % question.id" value="[]"/>
-        </div>
+    <!-- Make the template available for survey rendering -->
+    <template id="survey_question_type_extend" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
+            <t t-if="question.question_type == 'match_following'">
+                <t t-call="custom_elearn.match_following_question_template"/>
+            </t>
+        </xpath>
     </template>
 </odoo>
