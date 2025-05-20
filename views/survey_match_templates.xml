@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Simply inject our script into survey layout -->
-    <template id="survey_layout_match_following" inherit_id="survey.layout">
-        <xpath expr="//head" position="inside">
+    <!-- Simple template to include our JavaScript -->
+    <template id="survey_match_assets" inherit_id="web.assets_frontend">
+        <xpath expr="." position="inside">
             <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
         </xpath>
     </template>
