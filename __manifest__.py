@@ -17,6 +17,7 @@
         'views/fallback_assets.xml',
         'views/assets.xml',
         'views/survey_assets.xml',
+        'views/survey_templates.xml',
     ],
     'assets': {
         'survey.assets_frontend': [

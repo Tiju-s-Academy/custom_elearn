@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 import json
 import logging
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -18,54 +19,14 @@ class SurveyMatchFollowing(http.Controller):
                 _logger.error(f"Survey not found: {survey_token}")
                 # Return empty array instead of error object to satisfy iterable requirement
                 return []
-                
-            # Even if the question_id is not numeric, try to find the question
-            question = None
             
-            # First try by ID if it's a number
-            if question_id.isdigit():
-                question = request.env['survey.question'].sudo().browse(int(question_id))
-                if not question.exists():
-                    question = None
-                    
-            # If not found, try to find by other identifiers
-            if not question:
-                # Try looking up all questions in this survey
-                questions = request.env['survey.question'].sudo().search([
-                    ('survey_id', '=', survey_sudo.id)
-                ])
-                
-                # For debugging
-                _logger.info(f"Looking for question: {question_id} in survey {survey_sudo.id}")
-                _logger.info(f"Available questions: {[(q.id, q.title) for q in questions]}")
-                
-                # Try to find a match
-                for q in questions:
-                    # Check common identifiers
-                    if (str(q.id) == question_id or 
-                        (hasattr(q, 'question_id') and q.question_id == question_id) or
-                        (hasattr(q, 'title') and q.title == question_id)):
-                        question = q
-                        break
-            
-            if not question:
-                _logger.error(f"Question not found: {question_id}")
-                # Return empty array instead of error object
-                return []
-                
-            if question.question_type != 'match_following':
-                _logger.error(f"Question {question.id} is not match_following type")
-                # Return empty array instead of error object
-                return []
-                
-            # Process the match following data
+            # Extract data from the post
             value_match_following = post.get('value_match_following')
             if not value_match_following:
                 _logger.error("No match following data provided")
-                # Return empty array instead of error object
                 return []
                 
-            # Get or create user input
+            # Get user input (survey session)
             user_input = request.env['survey.user_input'].sudo().search([
                 ('survey_id', '=', survey_sudo.id),
                 ('access_token', '=', survey_token)
@@ -73,9 +34,57 @@ class SurveyMatchFollowing(http.Controller):
             
             if not user_input:
                 _logger.error("User session not found")
-                # Return empty array instead of error object
+                return []
+            
+            # In Odoo 17, the question_id is likely the frontend page_id rather than the database ID
+            # Let's try to find the question in multiple ways
+            
+            # Get all questions in this survey
+            questions = request.env['survey.question'].sudo().search([
+                ('survey_id', '=', survey_sudo.id),
+                ('question_type', '=', 'match_following')
+            ])
+            
+            # Log available questions for debugging
+            _logger.info(f"Looking for question: {question_id} in survey {survey_sudo.id}")
+            _logger.info(f"Available match_following questions: {[(q.id, q.title) for q in questions]}")
+            
+            # If we have only one match_following question, use that one
+            if len(questions) == 1:
+                question = questions[0]
+                _logger.info(f"Using the only match_following question: {question.id} - {question.title}")
+            else:
+                # Try finding by ID or by other means
+                question = None
+                
+                # Try direct ID
+                if question_id.isdigit():
+                    question = request.env['survey.question'].sudo().browse(int(question_id))
+                    if not question.exists() or question.survey_id.id != survey_sudo.id:
+                        question = None
+                
+                # Try other approaches if still not found
+                if not question:
+                    # Check all questions for a match
+                    for q in questions:
+                        # Let's extract any actual numeric ID that might be in the string
+                        uuid_match = re.search(r'question_(\d+)', question_id)
+                        if uuid_match:
+                            potential_id = int(uuid_match.group(1))
+                            if q.id == potential_id:
+                                question = q
+                                break
+                
+                # If still not found, just use the first one with match_following type
+                if not question and questions:
+                    question = questions[0]
+                    _logger.warning(f"Could not find exact question match for {question_id}, using first match_following question: {question.id}")
+            
+            if not question:
+                _logger.error(f"No match_following questions found in survey {survey_sudo.id}")
                 return []
                 
+            # Process the match following data
             # Create or update user input line
             user_input_line = request.env['survey.user_input.line'].sudo().search([
                 ('user_input_id', '=', user_input.id),
@@ -86,6 +95,7 @@ class SurveyMatchFollowing(http.Controller):
                 user_input_line.sudo().write({
                     'value_match_following': value_match_following
                 })
+                _logger.info(f"Updated answer for question {question.id}")
             else:
                 request.env['survey.user_input.line'].sudo().create({
                     'user_input_id': user_input.id,
@@ -93,6 +103,7 @@ class SurveyMatchFollowing(http.Controller):
                     'value_match_following': value_match_following,
                     'answer_type': 'match_following'
                 })
+                _logger.info(f"Created new answer for question {question.id}")
             
             # Return in the format expected by survey.js - an array of results
             return [{

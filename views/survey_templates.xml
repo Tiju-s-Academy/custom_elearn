@@ -48,6 +48,50 @@
         </xpath>
     </template>
 
+    <!-- Template for match following question type -->
+    <template id="match_following_question_template" name="Survey Match Following Question">
+        <div t-if="question.question_type == 'match_following'" 
+             class="match_following_container js_question-wrapper" 
+             t-att-data-question-id="question.id">
+             
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="o_match_questions">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                <span t-field="pair.left_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Matches</h5>
+                    <div class="o_match_answers">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id">
+                                <span t-field="pair.right_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hidden input to store the matches -->
+            <input type="hidden" name="question_{question.id}" t-att-value="user_input_line.value_match_following if user_input_line else None"/>
+            
+            <!-- Add question ID in multiple formats to help identification -->
+            <input type="hidden" class="question_id_reference" t-att-value="question.id"/>
+        </div>
+    </template>
+    
+    <!-- Inject our template into the survey question template -->
+    <template id="survey_question_inherit" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
+            <t t-call="custom_elearn.match_following_question_template"/>
+        </xpath>
+    </template>
+
     <template id="survey_question_inherit" inherit_id="survey.survey_fill_form_page">
         <xpath expr="//div[hasclass('o_survey_form')]" position="inside">
             <!-- Add custom JavaScript initialization -->

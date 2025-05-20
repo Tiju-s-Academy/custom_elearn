@@ -159,7 +159,92 @@
             // Trigger a change event for form handling
             const event = new Event('change', { bubbles: true });
             hiddenInput.dispatchEvent(event);
+            
+            // Submit the answer to the server directly
+            submitAnswerToServer(container, matches);
         }
+    }
+
+    // Submit the answer directly to the server
+    function submitAnswerToServer(container, matches) {
+        // Find the form wrapper to get the question ID
+        const formWrapper = findFormWrapper(container);
+        if (!formWrapper) return;
+        
+        // Get either the question ID from the element or from the page URL
+        let questionId = formWrapper.getAttribute('data-question-id');
+        if (!questionId) {
+            // Try to get from the closest question wrapper
+            const questionWrapper = container.closest('.js_question-wrapper');
+            if (questionWrapper) {
+                questionId = questionWrapper.getAttribute('data-question-id');
+            }
+        }
+        
+        // If we still don't have a question ID, get it from the page context
+        if (!questionId) {
+            // For Odoo 17, try to find question ID in context
+            const surveyForm = document.querySelector('.o_survey_form');
+            if (surveyForm) {
+                // Often in Odoo 17 the question ID is embedded in the form data 
+                const questionInputs = surveyForm.querySelectorAll('input[name^="question_"]');
+                if (questionInputs.length > 0) {
+                    // Extract question ID from input name (e.g., "question_123")
+                    const inputName = questionInputs[0].name;
+                    const idMatch = inputName.match(/question_(\d+)/);
+                    if (idMatch) {
+                        questionId = idMatch[1];
+                    }
+                }
+            }
+        }
+        
+        // Get the survey token from the URL
+        const url = window.location.href;
+        const tokenMatch = url.match(/\/survey\/([^\/]+)/);
+        const surveyToken = tokenMatch ? tokenMatch[1] : null;
+        
+        if (!surveyToken) {
+            console.error("Could not find survey token in URL");
+            return;
+        }
+        
+        if (!questionId) {
+            console.error("Could not determine question ID");
+            return;
+        }
+        
+        console.log(`Submitting match following answer for question ${questionId} in survey ${surveyToken}`);
+        
+        // Make the AJAX request to the server
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/survey/submit/${surveyToken}/${questionId}`, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    console.log('Answer submitted successfully');
+                } else {
+                    console.error('Error submitting answer:', xhr.statusText);
+                }
+            }
+        };
+        xhr.send(JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            params: {
+                value_match_following: JSON.stringify(matches)
+            }
+        }));
+    }
+
+    // Find the form wrapper for a container
+    function findFormWrapper(element) {
+        let current = element;
+        while (current && !current.classList.contains('js_question-wrapper')) {
+            current = current.parentElement;
+        }
+        return current;
     }
 
     // Find the closest match following container to an element
