@@ -243,4 +243,3 @@ class SurveyMatchFollowing(http.Controller):
                 'status_code': 500,
                 'status_message': "Error creating test survey"
             })
-            })            })
