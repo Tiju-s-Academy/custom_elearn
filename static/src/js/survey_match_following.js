@@ -73,371 +73,338 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
 });
 
 /**
- * Match Following implementation for Odoo surveys
- * Uses the Value as Object approach that was successful in testing
+ * Survey Match Following Implementation
+ * Handles drag-and-drop functionality for match following questions
  */
 (function() {
     'use strict';
     
-    // Initialize when DOM is ready
+    // Initialize when document is ready
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("Match Following: Initializing");
+        console.log("MatchFollowing: Document ready");
         setTimeout(initMatchFollowing, 1000);
     });
     
     // Main initialization function
     function initMatchFollowing() {
-        try {
-            console.log("Match Following: Looking for containers");
-            
-            // Find or create match following containers
-            var containers = document.querySelectorAll('.match_following_container');
-            
-            // If no containers found, try to create them
-            if (containers.length === 0) {
-                createContainers();
-                // Re-query for containers
-                containers = document.querySelectorAll('.match_following_container');
-            }
-            
-            // Set up drag and drop for each container
-            for (var i = 0; i < containers.length; i++) {
-                setupDragDrop(containers[i]);
-            }
-            
-            console.log("Match Following: Initialized " + containers.length + " containers");
-        } catch (error) {
-            console.error("Match Following error:", error);
+        console.log("MatchFollowing: Initializing");
+        
+        // Find survey container
+        var surveyForm = document.querySelector('.o_survey_form');
+        if (!surveyForm) {
+            console.log("MatchFollowing: No survey form found");
+            return;
         }
+        
+        // Find or create match following containers
+        var questions = surveyForm.querySelectorAll('.js_question-wrapper');
+        console.log(`MatchFollowing: Found ${questions.length} questions`);
+        
+        // Add match following UI
+        var matchCount = 0;
+        questions.forEach(function(question) {
+            if (addMatchFollowingUI(question)) {
+                matchCount++;
+            }
+        });
+        
+        console.log(`MatchFollowing: Added ${matchCount} match following UI components`);
+        
+        // Add styles
+        addStyles();
     }
     
-    // Create match following containers in the survey
-    function createContainers() {
-        // Find survey questions
-        var questions = document.querySelectorAll('.js_question-wrapper');
-        
-        for (var i = 0; i < questions.length; i++) {
-            var question = questions[i];
-            
-            // Try to get question ID
-            var questionId = getQuestionId(question);
-            if (!questionId) continue;
-            
-            // Create container for this question
-            createMatchFollowingContainer(question, questionId);
+    // Add match following UI to a question
+    function addMatchFollowingUI(questionElem) {
+        // Skip if already processed
+        if (questionElem.querySelector('.match_following_container')) {
+            return false;
         }
         
-        // If no questions found, add a test container
-        if (questions.length === 0) {
-            var surveyForm = document.querySelector('.o_survey_form');
-            if (surveyForm) {
-                var testWrapper = document.createElement('div');
-                testWrapper.className = 'js_question-wrapper test-question';
-                
-                var heading = document.createElement('h4');
-                heading.textContent = 'Match Following Test';
-                testWrapper.appendChild(heading);
-                
-                surveyForm.appendChild(testWrapper);
-                
-                createMatchFollowingContainer(testWrapper, '34'); // Use a known question ID
-            }
+        // Check if this is a match following question
+        var questionType = questionElem.getAttribute('data-question-type');
+        var inputType = questionElem.querySelector('input[name="question_type"]');
+        if (inputType) {
+            questionType = inputType.value;
         }
-    }
-    
-    // Create a match following container for a question
-    function createMatchFollowingContainer(wrapper, questionId) {
-        console.log("Match Following: Creating container for question " + questionId);
         
-        // Create container element
+        // Only proceed for match following questions
+        if (questionType !== 'match_following' && !questionElem.classList.contains('js_match_question')) {
+            return false;
+        }
+        
+        console.log("MatchFollowing: Found match following question");
+        
+        // Get question ID
+        var questionId = getQuestionId(questionElem);
+        if (!questionId) {
+            console.log("MatchFollowing: Could not determine question ID");
+            return false;
+        }
+        
+        // Create container
         var container = document.createElement('div');
         container.className = 'match_following_container';
         container.setAttribute('data-question-id', questionId);
         
-        // Create structure
-        var html = 
-            '<div class="row">' +
-                '<div class="col-md-6">' +
-                    '<h5>Items</h5>' +
-                    '<div class="o_match_questions"></div>' +
+        // Basic HTML structure
+        container.innerHTML = 
+            '<div class="match_following_content">' +
+                '<div class="row">' +
+                    '<div class="col-md-6">' +
+                        '<h5>Items</h5>' +
+                        '<div class="match_items match_left"></div>' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<h5>Match With</h5>' +
+                        '<div class="match_items match_right"></div>' +
+                    '</div>' +
                 '</div>' +
-                '<div class="col-md-6">' +
-                    '<h5>Match With</h5>' +
-                    '<div class="o_match_answers"></div>' +
-                '</div>' +
-            '</div>' +
-            '<input type="hidden" name="question_' + questionId + '" value="[]">' +
-            '<p class="text-muted">Drag items from left to right to match them.</p>' +
-            '<button type="button" class="btn btn-sm btn-primary mt-2 js_submit_matches">Submit Matches</button>';
+                '<div class="match_status mt-3"></div>' +
+            '</div>';
         
-        container.innerHTML = html;
+        // Add to question
+        questionElem.appendChild(container);
         
-        // Apply styles
-        container.style.padding = '15px';
-        container.style.backgroundColor = '#f9f9f9';
-        container.style.borderRadius = '4px';
-        container.style.margin = '15px 0';
+        // Load match items
+        loadMatchItems(container);
         
-        // Style the drop zones
-        var dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
-        for (var i = 0; i < dropZones.length; i++) {
-            var zone = dropZones[i];
-            zone.style.minHeight = '150px';
-            zone.style.border = '1px dashed #ccc';
-            zone.style.padding = '10px';
-            zone.style.backgroundColor = '#fff';
-            zone.style.borderRadius = '4px';
-            zone.style.marginBottom = '10px';
-        }
-        
-        // Add to wrapper
-        wrapper.appendChild(container);
-        
-        // Add sample items
-        addSampleItems(container, questionId);
-        
-        // Add submit button handler
-        var submitBtn = container.querySelector('.js_submit_matches');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', function() {
-                console.log("Match Following: Manual submission triggered");
-                var matches = collectMatches(container);
-                submitMatches(questionId, matches);
-            });
-        }
-        
-        return container;
+        return true;
     }
     
-    // Add sample items to a container
-    function addSampleItems(container, questionId) {
-        var samples = [
-            { id: 'pair1_' + questionId, left: 'Apple', right: 'Fruit' },
-            { id: 'pair2_' + questionId, left: 'Dog', right: 'Animal' },
-            { id: 'pair3_' + questionId, left: 'Car', right: 'Vehicle' }
-        ];
-        
-        var leftZone = container.querySelector('.o_match_questions');
-        var rightZone = container.querySelector('.o_match_answers');
-        
-        if (!leftZone || !rightZone) return;
-        
-        // Add left items
-        for (var i = 0; i < samples.length; i++) {
-            var sample = samples[i];
-            
-            // Create left item
-            var leftItem = document.createElement('div');
-            leftItem.className = 'o_match_item';
-            leftItem.setAttribute('draggable', 'true');
-            leftItem.setAttribute('data-pair-id', sample.id);
-            leftItem.textContent = sample.left;
-            
-            // Style the item
-            leftItem.style.backgroundColor = '#fff';
-            leftItem.style.border = '1px solid #dee2e6';
-            leftItem.style.padding = '10px';
-            leftItem.style.margin = '5px 0';
-            leftItem.style.borderRadius = '4px';
-            leftItem.style.cursor = 'grab';
-            
-            leftZone.appendChild(leftItem);
-            
-            // Create right item
-            var rightItem = document.createElement('div');
-            rightItem.className = 'o_match_item';
-            rightItem.setAttribute('draggable', 'true');
-            rightItem.setAttribute('data-pair-id', sample.id);
-            rightItem.textContent = sample.right;
-            
-            // Style the item
-            rightItem.style.backgroundColor = '#fff';
-            rightItem.style.border = '1px solid #dee2e6';
-            rightItem.style.padding = '10px';
-            rightItem.style.margin = '5px 0';
-            rightItem.style.borderRadius = '4px';
-            rightItem.style.cursor = 'grab';
-            
-            rightZone.appendChild(rightItem);
-        }
-    }
-    
-    // Set up drag and drop for a container
-    function setupDragDrop(container) {
-        if (container.getAttribute('data-drag-drop-setup') === 'true') {
-            return; // Already set up
-        }
-        
-        console.log("Match Following: Setting up drag and drop");
-        
-        // Get all draggable items
-        var items = container.querySelectorAll('.o_match_item');
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            
-            // Make draggable
-            item.setAttribute('draggable', 'true');
-            
-            // Drag start
-            item.addEventListener('dragstart', function(e) {
-                e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
-                this.classList.add('dragging');
-                this.style.opacity = '0.5';
-            });
-            
-            // Drag end
-            item.addEventListener('dragend', function() {
-                this.classList.remove('dragging');
-                this.style.opacity = '1';
-                
-                // Remove active class from all drop zones
-                var activeZones = container.querySelectorAll('.drop-zone-active');
-                for (var j = 0; j < activeZones.length; j++) {
-                    activeZones[j].classList.remove('drop-zone-active');
-                    activeZones[j].style.backgroundColor = '#fff';
-                    activeZones[j].style.borderColor = '#ccc';
-                }
-            });
-        }
-        
-        // Set up drop zones
-        var dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
-        for (var k = 0; k < dropZones.length; k++) {
-            var zone = dropZones[k];
-            
-            // Drag over
-            zone.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                this.classList.add('drop-zone-active');
-                this.style.backgroundColor = '#e8f4ff';
-                this.style.borderColor = '#b8daff';
-            });
-            
-            // Drag leave
-            zone.addEventListener('dragleave', function() {
-                this.classList.remove('drop-zone-active');
-                this.style.backgroundColor = '#fff';
-                this.style.borderColor = '#ccc';
-            });
-            
-            // Drop
-            zone.addEventListener('drop', function(e) {
-                e.preventDefault();
-                
-                // Reset styles
-                this.classList.remove('drop-zone-active');
-                this.style.backgroundColor = '#fff';
-                this.style.borderColor = '#ccc';
-                
-                // Get the dropped item's pair ID
-                var pairId = e.dataTransfer.getData('text/plain');
-                if (!pairId) return;
-                
-                // Only process when dropping in answers zone
-                if (this.classList.contains('o_match_answers')) {
-                    // Find the left item
-                    var leftItem = container.querySelector('.o_match_questions .o_match_item[data-pair-id="' + pairId + '"]');
-                    if (leftItem) {
-                        // Mark as matched
-                        leftItem.setAttribute('data-matched', 'true');
-                        leftItem.style.backgroundColor = '#d4edda';
-                        leftItem.style.borderColor = '#c3e6cb';
-                    }
-                    
-                    // Find the right item
-                    var rightItem = container.querySelector('.o_match_answers .o_match_item[data-pair-id="' + pairId + '"]');
-                    if (rightItem) {
-                        rightItem.style.backgroundColor = '#d4edda';
-                        rightItem.style.borderColor = '#c3e6cb';
-                    }
-                    
-                    // Collect and submit matches
-                    var matches = collectMatches(container);
-                    submitMatches(container.getAttribute('data-question-id'), matches);
-                }
-            });
-        }
-        
-        // Mark as set up
-        container.setAttribute('data-drag-drop-setup', 'true');
-    }
-    
-    // Collect matches from a container
-    function collectMatches(container) {
-        var matches = [];
-        var matchedItems = container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]');
-        
-        for (var i = 0; i < matchedItems.length; i++) {
-            var item = matchedItems[i];
-            matches.push({
-                pair_id: item.getAttribute('data-pair-id'),
-                matched: true
-            });
-        }
-        
-        // Update the hidden input
-        var hiddenInput = container.querySelector('input[type="hidden"]');
-        if (hiddenInput) {
-            // Important: Do NOT stringify the array here, we need the raw object
-            hiddenInput.value = JSON.stringify(matches);
-        }
-        
-        return matches;
-    }
-    
-    // Submit matches to the server
-    function submitMatches(questionId, matches) {
+    // Load match items for a container
+    function loadMatchItems(container) {
+        var questionId = container.getAttribute('data-question-id');
         var surveyToken = getSurveyToken();
-        if (!surveyToken) {
-            console.error("Match Following: Could not determine survey token");
+        
+        if (!questionId || !surveyToken) {
+            console.log("MatchFollowing: Missing question ID or survey token");
+            addDemoItems(container);
             return;
         }
         
-        console.log("Match Following: Submitting matches for question " + questionId);
-        console.log("Match Following: Using survey token " + surveyToken);
-        console.log("Match Following: Matches data:", matches);
+        // Call API to get match data
+        callRpc('/survey/get_match_data/' + surveyToken + '/' + questionId, {}, function(response) {
+            if (response && response.pairs) {
+                renderMatchItems(container, response.pairs, response.shuffle_left, response.shuffle_right);
+            } else {
+                console.log("MatchFollowing: No match data returned");
+                addDemoItems(container);
+            }
+        });
+    }
+    
+    // Add demo items for testing
+    function addDemoItems(container) {
+        var pairs = [
+            { id: 1, left_option: 'Apple', right_option: 'Fruit' },
+            { id: 2, left_option: 'Dog', right_option: 'Animal' },
+            { id: 3, left_option: 'Car', right_option: 'Vehicle' }
+        ];
+        renderMatchItems(container, pairs, true, true);
+    }
+    
+    // Render match items in container
+    function renderMatchItems(container, pairs, shuffleLeft, shuffleRight) {
+        var leftContainer = container.querySelector('.match_left');
+        var rightContainer = container.querySelector('.match_right');
         
-        // Create request
+        if (!leftContainer || !rightContainer) return;
+        
+        // Clear containers
+        leftContainer.innerHTML = '';
+        rightContainer.innerHTML = '';
+        
+        // Copy arrays for shuffling
+        var leftItems = pairs.map(function(p) { 
+            return { id: p.id, text: p.left_option };
+        });
+        
+        var rightItems = pairs.map(function(p) { 
+            return { id: p.id, text: p.right_option };
+        });
+        
+        // Shuffle if needed
+        if (shuffleLeft) {
+            leftItems = shuffleArray(leftItems);
+        }
+        
+        if (shuffleRight) {
+            rightItems = shuffleArray(rightItems);
+        }
+        
+        // Render left items
+        leftItems.forEach(function(item) {
+            var itemElement = document.createElement('div');
+            itemElement.className = 'match_item';
+            itemElement.setAttribute('draggable', 'true');
+            itemElement.setAttribute('data-item-id', item.id);
+            itemElement.textContent = item.text;
+            
+            // Add drag events
+            itemElement.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', item.id);
+                this.classList.add('dragging');
+            });
+            
+            itemElement.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+            
+            leftContainer.appendChild(itemElement);
+        });
+        
+        // Render right items
+        rightItems.forEach(function(item) {
+            var itemElement = document.createElement('div');
+            itemElement.className = 'match_item';
+            itemElement.setAttribute('data-item-id', item.id);
+            itemElement.textContent = item.text;
+            
+            // Set up as drop zone
+            itemElement.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            });
+            
+            itemElement.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+            
+            itemElement.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                var itemId = e.dataTransfer.getData('text/plain');
+                if (!itemId) return;
+                
+                // Check if this is the correct match
+                if (itemId == item.id) {
+                    // Mark as matched
+                    this.classList.add('matched');
+                    
+                    // Find and mark left item
+                    var leftItem = leftContainer.querySelector('[data-item-id="' + itemId + '"]');
+                    if (leftItem) {
+                        leftItem.classList.add('matched');
+                    }
+                    
+                    // Save match
+                    saveMatch(container, itemId);
+                } else {
+                    // Wrong match - show feedback
+                    this.classList.add('wrong-match');
+                    setTimeout(function() {
+                        itemElement.classList.remove('wrong-match');
+                    }, 1000);
+                }
+            });
+            
+            rightContainer.appendChild(itemElement);
+        });
+        
+        // Set up drag and drop for the containers
+        setupContainerDrop(leftContainer, rightContainer);
+    }
+    
+    // Set up container drop handlers
+    function setupContainerDrop(leftContainer, rightContainer) {
+        // Make right container a drop zone
+        rightContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over-container');
+        });
+        
+        rightContainer.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over-container');
+        });
+        
+        rightContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over-container');
+        });
+    }
+    
+    // Save a match
+    function saveMatch(container, itemId) {
+        var questionId = container.getAttribute('data-question-id');
+        var surveyToken = getSurveyToken();
+        
+        if (!questionId || !surveyToken) return;
+        
+        // Get all matched items
+        var matches = [];
+        var matchedItems = container.querySelectorAll('.match_left .match_item.matched');
+        
+        matchedItems.forEach(function(item) {
+            matches.push({
+                item_id: item.getAttribute('data-item-id'),
+                matched: true
+            });
+        });
+        
+        // Save matches
+        callRpc('/survey/submit_match/' + surveyToken + '/' + questionId, {
+            matches: matches
+        }, function(response) {
+            if (response && response.success) {
+                updateMatchStatus(container, matches);
+            } else if (response && response.error) {
+                console.error("MatchFollowing: Error saving match:", response.error);
+            }
+        });
+    }
+    
+    // Update match status display
+    function updateMatchStatus(container, matches) {
+        var statusDiv = container.querySelector('.match_status');
+        if (!statusDiv) return;
+        
+        var total = container.querySelectorAll('.match_left .match_item').length;
+        var matched = matches.length;
+        
+        if (matched === total) {
+            statusDiv.innerHTML = '<div class="alert alert-success">All items matched correctly!</div>';
+        } else {
+            statusDiv.innerHTML = '<div class="text-muted">' + matched + ' of ' + total + ' items matched</div>';
+        }
+    }
+    
+    // Helper function to call RPC
+    function callRpc(url, params, callback) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/survey/submit/" + surveyToken + "/" + questionId, true);
-        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    console.log("Match Following: Submission successful");
-                    try {
-                        var response = JSON.parse(xhr.responseText);
-                        console.log("Match Following: Server response:", response);
-                    } catch (e) {
-                        console.log("Match Following: Raw response:", xhr.responseText);
-                    }
-                } else {
-                    console.error("Match Following: Submission failed with status " + xhr.status);
+                var response = null;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    console.error("MatchFollowing: Error parsing response", e);
+                }
+                
+                if (callback) {
+                    callback(response && response.result ? response.result : response);
                 }
             }
         };
         
-        // This is the key change - passing matches directly as an object, not as a stringified JSON
-        var payload = {
+        xhr.send(JSON.stringify({
             jsonrpc: "2.0",
             method: "call",
-            params: {
-                value_match_following: matches // Direct object, not stringified
-            },
+            params: params,
             id: new Date().getTime()
-        };
-        
-        console.log("Match Following: Sending payload:", payload);
-        xhr.send(JSON.stringify(payload));
+        }));
     }
     
-    // Get question ID from an element
+    // Helper function to get question ID
     function getQuestionId(element) {
-        // Try data attribute first
+        // Try data attribute
         var id = element.getAttribute('data-question-id');
         
-        // Try to get from input name
+        // Try input name
         if (!id) {
             var inputs = element.querySelectorAll('input[name^="question_"]');
             if (inputs.length > 0) {
@@ -451,30 +418,82 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         return id;
     }
     
-    // Get survey token from URL
+    // Helper function to get survey token
     function getSurveyToken() {
         var url = window.location.href;
-        
-        // Try different URL patterns
-        var patterns = [
-            /\/survey\/([^\/]+)/,
-            /\/begin\/([^\/]+)/,
-            /\/start\/([^\/]+)/
-        ];
-        
-        for (var i = 0; i < patterns.length; i++) {
-            var match = url.match(patterns[i]);
-            if (match && match[1]) {
-                return match[1];
-            }
-        }
-        
-        return null;
+        var match = url.match(/\/survey\/([^\/]+)/) || 
+                   url.match(/\/begin\/([^\/]+)/) || 
+                   url.match(/\/start\/([^\/]+)/);
+                   
+        return match ? match[1] : null;
     }
     
-    // Define global API
+    // Helper function to shuffle array
+    function shuffleArray(array) {
+        var shuffled = array.slice();
+        for (var i = shuffled.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = shuffled[i];
+            shuffled[i] = shuffled[j];
+            shuffled[j] = temp;
+        }
+        return shuffled;
+    }
+    
+    // Add CSS styles
+    function addStyles() {
+        var style = document.createElement('style');
+        style.textContent = `
+            .match_following_container {
+                margin: 15px 0;
+                padding: 15px;
+                background-color: #f9f9f9;
+                border-radius: 4px;
+                border: 1px solid #eee;
+            }
+            .match_items {
+                min-height: 150px;
+                padding: 10px;
+                border: 1px dashed #ccc;
+                border-radius: 4px;
+                background-color: #fff;
+            }
+            .match_item {
+                margin: 5px 0;
+                padding: 10px;
+                background-color: #fff;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                cursor: grab;
+            }
+            .match_left .match_item {
+                cursor: grab;
+            }
+            .match_item.dragging {
+                opacity: 0.5;
+            }
+            .match_item.matched {
+                background-color: #d4edda;
+                border-color: #c3e6cb;
+            }
+            .match_item.wrong-match {
+                background-color: #f8d7da;
+                border-color: #f5c6cb;
+            }
+            .match_item.drag-over {
+                background-color: #e8f4ff;
+                border-color: #b8daff;
+            }
+            .drag-over-container {
+                background-color: #f8f9fa;
+                border-color: #ddd;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Export for debugging
     window.matchFollowing = {
-        init: initMatchFollowing,
-        submit: submitMatches
+        init: initMatchFollowing
     };
 })();

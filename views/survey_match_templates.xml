@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Inject our test script directly into the survey layout -->
+    <!-- Include our JavaScript in the survey layout -->
     <template id="survey_match_assets" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_direct_test.js"/>
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"></script>
         </xpath>
+    </template>
+    
+    <!-- Simple template for match following question -->
+    <template id="match_following_question_template" name="Match Following Question">
+        <div class="js_match_question" data-question-type="match_following">
+            <!-- Match following content will be added by JS -->
+        </div>
     </template>
 </odoo>
