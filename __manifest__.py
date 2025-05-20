@@ -13,9 +13,8 @@
     'description': "Adds drag and drop question types in e-learn module",
     'data': [
         'security/ir.model.access.csv',
-        'views/survey_templates.xml',
-        'views/demo_templates.xml',
         'views/survey_question_inherit_view.xml',
+        'views/survey_question_type_extension.xml',
         'views/assets.xml',
         # Use the dedicated survey match assets
         'views/survey_match_assets.xml',

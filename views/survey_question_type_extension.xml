@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Extend survey question context to support match following type -->
+    <template id="survey_page_with_match_following" inherit_id="survey.survey_fill_form_page" priority="20">
+        <xpath expr="//div[hasclass('o_survey_form')]" position="inside">
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    // Insert match following questions after the page loads
+                    var questionsData = [];
+                    try {
+                        // Check if questions data is available in the page context
+                        if (window.survey_data &amp;&amp; window.survey_data.questions) {
+                            questionsData = window.survey_data.questions;
+                        }
+                        
+                        // Process each question
+                        questionsData.forEach(function(question) {
+                            if (question.question_type === 'match_following') {
+                                console.log('Found match following question:', question.id);
+                                // For now we'll just rely on our JavaScript to initialize
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error initializing match following questions:', e);
+                    }
+                });
+            </script>
+        </xpath>
+    </template>
+</odoo>

@@ -9,9 +9,11 @@ class SurveyQuestion(models.Model):
         ondelete={'match_following': 'cascade'}
     )
 
+    # Options for match following
     shuffle_right_options = fields.Boolean('Shuffle Right Options', default=True)
     shuffle_left_options = fields.Boolean('Shuffle Left Options', default=False)
 
+    # Field for match following pairs
     match_following_pairs = fields.One2many(
         'survey.question.match',
         'question_id',
@@ -43,7 +45,7 @@ class SurveyQuestionMatch(models.Model):
     _rec_name = 'left_option'
     _order = 'sequence, id'
 
-    sequence = fields.Integer('Sequence')
+    sequence = fields.Integer('Sequence', default=10)
     question_id = fields.Many2one(
         'survey.question',
         string='Question',

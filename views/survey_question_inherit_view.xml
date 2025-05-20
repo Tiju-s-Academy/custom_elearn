@@ -55,23 +55,132 @@
         </field>
     </record>
     
-    <!-- Add template for frontend rendering of match following question -->
-    <template id="match_following_question_template" inherit_id="survey.question">
-        <xpath expr="//div[hasclass('o_survey_question_matrix')]" position="after">
-            <div t-if="question.question_type == 'match_following'" class="js_match_following match_following_container" 
-                 t-att-data-question-id="question.id">
-                <!-- Match following UI will be handled by JavaScript -->
-                <div class="match_following_pairs">
-                    <t t-foreach="question.match_following_pairs" t-as="pair">
-                        <div class="match_pair" t-att-data-pair-id="pair.id">
-                            <div class="left_option"><t t-esc="pair.left_option"/></div>
-                            <div class="right_option"><t t-esc="pair.right_option"/></div>
-                        </div>
-                    </t>
+    <!-- Create standalone template for match following question rendering -->
+    <template id="match_following_question_template" name="Match Following Question">
+        <div class="js_match_following match_following_container" 
+             t-att-data-question-id="question.id">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="o_match_questions">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
+                                <span t-esc="pair.left_option"/>
+                            </div>
+                        </t>
+                    </div>
                 </div>
-                <!-- Hidden field to store the match following answer -->
-                <input type="hidden" name="match_following_result" class="match_following_result" />
+                <div class="col-md-6">
+                    <h5>Match With</h5>
+                    <div class="o_match_answers">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
+                                <span t-esc="pair.right_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
             </div>
+            <input type="hidden" t-att-name="'question_' + str(question.id)" value="[]"/>
+        </div>
+    </template>
+    
+    <!-- Inject our JavaScript to handle match following questions -->
+    <template id="match_following_assets" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    // Wait for survey to be fully rendered
+                    setTimeout(function() {
+                        // Find survey questions in the page
+                        $('.js_question-wrapper').each(function() {
+                            var $question = $(this);
+                            // Check if it might be a match following question
+                            var type = $question.data('questionType') || '';
+                            
+                            if (type === 'match_following' || $question.find('.match_following_container').length > 0) {
+                                console.log('Found match following question, initializing...');
+                                
+                                // Create match following container if needed
+                                if ($question.find('.match_following_container').length === 0) {
+                                    var questionId = $question.data('questionId');
+                                    var surveyToken = window.location.pathname.split('/').filter(Boolean).pop();
+                                    
+                                    // Fetch question data via AJAX if needed
+                                    // For now, we'll just use a placeholder
+                                    console.log('Match following needs initialization for question:', questionId);
+                                }
+                            }
+                        });
+                        
+                        if (window.customElearnMatchFollowing &amp;&amp; 
+                            typeof window.customElearnMatchFollowing.setup === 'function') {
+                            window.customElearnMatchFollowing.setup();
+                        }
+                    }, 500);
+                });
+            </script>
+            <style>
+                .match_following_container {
+                    padding: 15px;
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                    margin-bottom: 20px;
+                }
+                
+                .o_match_questions, .o_match_answers {
+                    min-height: 150px;
+                    border: 1px dashed #ccc;
+                    padding: 10px;
+                    border-radius: 4px;
+                    background-color: #fff;
+                }
+                
+                .o_match_item {
+                    background-color: #fff;
+                    border: 1px solid #dee2e6;
+                    padding: 10px;
+                    margin: 5px 0;
+                    border-radius: 4px;
+                    cursor: move;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                
+                .o_match_item.dragging {
+                    opacity: 0.5;
+                }
+                
+                .o_match_item.matched {
+                    background-color: #d4edda;
+                    border-color: #c3e6cb;
+                }
+                
+                .drop-zone-active {
+                    background-color: #e8f4ff;
+                    border-color: #b8daff;
+                }
+                
+                /* Preview styles */
+                .match_following_preview {
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                    padding: 10px;
+                }
+                
+                .match_left_preview, .match_right_preview {
+                    border: 1px dashed #ccc;
+                    padding: 10px;
+                    min-height: 100px;
+                    background-color: #fff;
+                }
+                
+                .match_item {
+                    background-color: #e9ecef;
+                    padding: 8px;
+                    margin: 5px 0;
+                    border-radius: 4px;
+                }
+            </style>
         </xpath>
     </template>
 </odoo>
