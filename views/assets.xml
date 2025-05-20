@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <template id="custom_elearn_assets_frontend" inherit_id="survey.assets_frontend" name="Survey Match Following Assets">
+        <!-- Add to general frontend assets -->
+        <template id="assets_frontend" inherit_id="web.assets_frontend" name="Survey Match Following General Assets">
             <xpath expr="." position="inside">
-                <script type="module" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+                <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+                <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+            </xpath>
+        </template>
+        
+        <!-- If you need to add to survey specific assets, use the correct template ID -->
+        <template id="survey_assets" inherit_id="survey.survey_assets" name="Survey Match Following Survey-specific Assets">
+            <xpath expr="." position="inside">
+                <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
                 <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
             </xpath>
         </template>

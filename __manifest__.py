@@ -1,7 +1,10 @@
 {
     'name': 'Survey Match Following',
     'version': '17.0.1.0.0',
-    'depends': ['survey'],
+    'depends': [
+        'web',
+        'survey',
+    ],
     'author': 'Tijus Academy',
     'category': 'Academic',
     'summary': 'Add new e-learn quiz type',
