@@ -83,15 +83,17 @@ class SurveyMatchFollowing(http.Controller):
                 _logger.error(f"Question not found: {question_id}")
                 return []
                 
-            # Get the answer value from params - improved extraction
+            # Get the answer value - try different paths
             value_match_following = None
-            if post:
-                if 'params' in post:
-                    params = post.get('params', {})
-                    value_match_following = params.get('value_match_following')
+            
+            # Try to extract from params
+            if post and isinstance(post, dict):
+                if 'params' in post and isinstance(post['params'], dict):
+                    value_match_following = post['params'].get('value_match_following')
                     _logger.info(f"Found value in params: {value_match_following}")
+            
+                # Try direct access
                 elif 'value_match_following' in post:
-                    # Direct access if not nested
                     value_match_following = post.get('value_match_following')
                     _logger.info(f"Found value directly in post: {value_match_following}")
                 
