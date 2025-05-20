@@ -3,7 +3,8 @@ from odoo.http import request
 
 class SurveyMatchFollowing(http.Controller):
     
-    @http.route('/survey/submit/<string:survey_token>/<string:question_id>', type='http', methods=['POST'], auth='public', website=True)
+    @http.route(['/survey/submit/<string:survey_token>/<string:question_id>'], 
+                type='json', auth='public', website=True, csrf=False)
     def survey_submit(self, survey_token, question_id, **post):
         # Fix the issue with 'id' being passed instead of a numeric ID
         if question_id and question_id.isdigit():
@@ -37,3 +38,4 @@ class SurveyMatchFollowing(http.Controller):
         else:
             # Handle the case when question_id is not a valid integer
             return {'error': 'Invalid question ID'}
+        return {'success': True}

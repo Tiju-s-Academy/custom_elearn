@@ -47,4 +47,14 @@
             <t t-if="question.question_type == 'match_following'" t-call="custom_elearn.question_match_following"/>
         </xpath>
     </template>
+
+    <template id="match_following_question" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
+            <!-- If you have a form in your template -->
+            <form t-if="question.question_type == 'match_following'" class="match_following_form">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <!-- ...existing form content... -->
+            </form>
+        </xpath>
+    </template>
 </odoo>

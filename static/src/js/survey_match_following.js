@@ -113,14 +113,27 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         this.$('input[type="hidden"]').val(JSON.stringify(matches));
     },
 
-    _submitSurvey: async function(surveyToken, questionId, data) {
+    // For Odoo 17, include the CSRF token in your RPC call
+    // If using the new Component system:
+    async submitMatchFollowing(surveyToken, questionId, data) {
+        // Include csrf_token in the params if needed
         await this.env.services.rpc({
-            route: `/survey/submit/${surveyToken}/${questionId}`, // Use actual question ID
-            params: data,
-        }).then((response) => {
-            // Handle the response
-        }).catch((error) => {
-            console.error("Error submitting survey:", error);
+            route: `/survey/submit/${surveyToken}/${questionId}`,
+            params: {
+                ...data,
+                csrf_token: odoo.csrf_token, // Include the CSRF token
+            },
         });
-    }
+    },
+
+    // Or if using older jQuery-style ajax:
+    submitMatchFollowing: function(surveyToken, questionId, data) {
+        return this._rpc({
+            route: `/survey/submit/${surveyToken}/${questionId}`,
+            params: {
+                ...data,
+                csrf_token: odoo.csrf_token, // Include the CSRF token
+            },
+        });
+    },
 });
