@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Include our JavaScript in the survey layout -->
+    <!-- Inject scripts directly into the survey layout template -->
     <template id="survey_match_assets" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
             <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"></script>
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_debug.js"></script>
         </xpath>
     </template>
 </odoo>
