@@ -13,9 +13,8 @@
     'description': "Adds drag and drop question types in e-learn module",
     'data': [
         'views/minimal.xml',
-        # Comment these temporarily until we resolve the issue
-        # 'views/assets.xml',
-        # 'views/survey_direct_assets.xml',
+        'views/assets.xml',
+        'views/survey_assets.xml',
     ],
     'assets': {
         'survey.assets_frontend': [

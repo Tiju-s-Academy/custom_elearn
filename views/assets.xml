@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- For Odoo 17, use web.assets_web and web.assets_frontend_minimal -->
+    <!-- For Odoo 17, use the correct asset bundle -->
     <template id="assets_web" inherit_id="web.assets_web">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        </xpath>
+    </template>
+
+    <!-- Also include in frontend_lazy to ensure it loads with survey pages -->
+    <template id="assets_frontend_lazy" inherit_id="web.assets_frontend_lazy">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </xpath>
+    </template>
+
+    <!-- Add to survey specific assets if they exist -->
+    <template id="survey_assets" inherit_id="survey.survey_assets" name="Survey Match Following Survey Assets">
         <xpath expr="." position="inside">
             <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
             <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>

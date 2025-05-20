@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import publicWidget from "@web/legacy/js/public/public_widget";
-import { registry } from "@web/core/registry";
-import { Component } from "@odoo/owl";
+import { registry } from '@web/core/registry';
+import publicWidget from 'web.public.widget';
+import { _t } from 'web.core';
 
+// For Odoo 17, we need to use the correct module structure
 publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     selector: '.match_following_container',
     events: {
@@ -116,136 +117,69 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         
         // Update the hidden input with the JSON value
         this.$('input[type="hidden"]').val(JSON.stringify(matches));
-    },
-
-    // For Odoo 17, include the CSRF token in your RPC call
-    // If using the new Component system:
-    async submitMatchFollowing(surveyToken, questionId, data) {
-        // Include csrf_token in the params if needed
-        await this.env.services.rpc({
-            route: `/survey/submit/${surveyToken}/${questionId}`,
-            params: {
-                ...data,
-                csrf_token: odoo.csrf_token, // Include the CSRF token
-            },
+        
+        // Trigger custom event for survey form to handle
+        this.trigger_up('user_changed_answer', {
+            question_type: 'match_following',
+            value: JSON.stringify(matches)
         });
-    },
-
-    // Or if using older jQuery-style ajax:
-    submitMatchFollowing: function(surveyToken, questionId, data) {
-        return this._rpc({
-            route: `/survey/submit/${surveyToken}/${questionId}`,
-            params: {
-                ...data,
-                csrf_token: odoo.csrf_token, // Include the CSRF token
-            },
-        });
-    },
+    }
 });
 
-odoo.define('custom_elearn.match_following', function (require) {
+// For Odoo 17, we need to ensure survey.form is available before extending it
+// Let's create a separate module for this
+odoo.define('custom_elearn.survey_form_extension', function (require) {
     'use strict';
-
+    
     var core = require('web.core');
     var publicWidget = require('web.public.widget');
-    var SurveyFormWidget = require('survey.form');
-    var _t = core._t;
-
-    // Extend the SurveyFormWidget
-    SurveyFormWidget.include({
-        events: _.extend({}, SurveyFormWidget.prototype.events, {
-            'matchfollowing:submit': '_onMatchFollowingSubmit'
-        }),
-
-        /**
-         * Initialize match following question handling
-         */
-        start: function () {
-            var self = this;
-            return this._super.apply(this, arguments).then(function () {
-                // Initialize match following functionality
-                self._initMatchFollowing();
-            });
-        },
-
-        /**
-         * Set up match following questions
-         */
-        _initMatchFollowing: function () {
-            var self = this;
-            // Add your initialization code here
-            $('.o_survey_form .match_following_container').each(function () {
-                // Initialize each match following question
-                console.log("Found match following question");
-            });
-        },
-
-        /**
-         * Handle submission of match following answers
-         * 
-         * @private
-         * @param {Event} event
-         */
-        _onMatchFollowingSubmit: function (event) {
-            var self = this;
-            var $target = $(event.currentTarget);
-            var $question = $target.closest('.js_question-wrapper');
-            var questionId = $question.data('questionId');
-            
-            // Get match following data
-            var matchData = {
-                // Collect match following answers
-                value_match_following: JSON.stringify([
-                    // Example format - replace with actual data collection
-                    {pair_id: 1, matched: true}
-                ])
-            };
-            
-            // Submit the answer to the server
-            return this._submitMatchFollowingAnswer(questionId, matchData).then(function (result) {
-                // Ensure result is in expected format to avoid "not iterable" error
-                if (result && result.success) {
-                    // Handle successful submission
-                    return [{
-                        id: questionId,
-                        value: matchData.value_match_following
-                    }];
-                } else {
-                    // Handle error case
-                    console.error("Error submitting match following answer:", result);
-                    // Return empty array to satisfy the iterable requirement
-                    return [];
-                }
-            }).guardedCatch(function (error) {
-                console.error("Failed to submit match following answer:", error);
-                // Return empty array to satisfy the iterable requirement
-                return [];
-            });
-        },
-
-        /**
-         * Submit match following answer to server
-         * 
-         * @private
-         * @param {string} questionId
-         * @param {Object} data
-         * @returns {Promise}
-         */
-        _submitMatchFollowingAnswer: function (questionId, data) {
-            var self = this;
-            return this._rpc({
-                route: '/survey/submit/' + this.surveyToken + '/' + questionId,
-                params: data
-            }).then(function (result) {
-                // Ensure we return an object with the expected format
-                return result || { success: false, error: "No response" };
-            }).guardedCatch(function (error) {
-                return { success: false, error: error };
-            });
-        }
-    });
-
-    return {
-        // Export any functions needed
-    };
+    
+    // Try to load the survey form module if it exists
+    var SurveyFormWidget;
+    try {
+        SurveyFormWidget = require('survey.form');
+    } catch (e) {
+        console.error("Could not load survey.form module:", e);
+        return {};
+    }
+    
+    if (SurveyFormWidget) {
+        // Only extend if the module was loaded
+        SurveyFormWidget.include({
+            /**
+             * Override to handle match following questions
+             */
+            _prepareSubmitValues: function (formData, params) {
+                var result = this._super.apply(this, arguments);
+                
+                // Add handling for match following questions
+                this.$('.js_question-wrapper').each(function () {
+                    var $questionWrapper = $(this);
+                    var $matchFollowingContainer = $questionWrapper.find('.match_following_container');
+                    
+                    if ($matchFollowingContainer.length) {
+                        var questionId = $questionWrapper.data('questionId');
+                        var value = $matchFollowingContainer.find('input[type="hidden"]').val();
+                        
+                        if (value) {
+                            formData.append('question_' + questionId, value);
+                            params.push({
+                                name: 'question_' + questionId,
+                                value: value,
+                                type: 'match_following'
+                            });
+                        }
+                    }
+                });
+                
+                return result;
+            }
+        });
+    }
+    
+    return {};
 });
+
+export default {
+    SurveyMatchFollowing: publicWidget.registry.SurveyMatchFollowing
+};

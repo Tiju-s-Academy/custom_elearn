@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Create a dedicated bundle for survey match following -->
+    <template id="assets_survey_match_following" name="Survey Match Following Assets">
+        <script type="text/javascript" src="/web/static/lib/jquery/jquery.js"/>
+        <script type="text/javascript" src="/web/static/lib/owl/owl.js"/>
+        <script type="text/javascript" src="/web/static/src/legacy/js/public/public_widget.js"/>
+        <script type="text/javascript" src="/web/static/src/core/registry.js"/>
+        <script type="text/javascript" src="/survey/static/src/js/survey_form.js"/>
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+    </template>
+    
+    <!-- Include this bundle in survey layout -->
+    <template id="survey_layout_assets" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.assets_survey_match_following"/>
+        </xpath>
+    </template>
+</odoo>
