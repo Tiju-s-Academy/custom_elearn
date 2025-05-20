@@ -14,6 +14,7 @@
     'data': [
         'security/ir.model.access.csv',
         'views/survey_question_inherit_view.xml',
+        'views/survey_match_templates.xml',
         'views/survey_question_type_extension.xml',
         'views/assets.xml',
         # Use the dedicated survey match assets

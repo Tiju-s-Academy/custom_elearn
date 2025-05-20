@@ -29,23 +29,24 @@
                 </page>
             </xpath>
             
-            <!-- Add preview of match following in the question editor -->
-            <xpath expr="//div[@name='preview']" position="inside">
-                <div t-if="question_type == 'match_following'" class="match_following_preview">
+            <!-- Add preview to question form - use a different approach without using the preview div -->
+            <xpath expr="//notebook" position="before">
+                <div class="o_match_following_preview" attrs="{'invisible': [('question_type', '!=', 'match_following')]}">
+                    <h5>Match Following Preview</h5>
                     <div class="row">
                         <div class="col-6">
                             <h6>Left Options</h6>
-                            <div class="match_left_preview">
-                                <div class="match_item" t-foreach="match_following_pairs" t-as="pair">
-                                    <span t-esc="pair.left_option" />
+                            <div class="match_left_preview p-2 border rounded">
+                                <div class="match_item bg-light p-2 mb-2 rounded" t-foreach="match_following_pairs" t-as="pair">
+                                    <field name="left_option" nolabel="1" readonly="1" />
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
                             <h6>Right Options</h6>
-                            <div class="match_right_preview">
-                                <div class="match_item" t-foreach="match_following_pairs" t-as="pair">
-                                    <span t-esc="pair.right_option" />
+                            <div class="match_right_preview p-2 border rounded">
+                                <div class="match_item bg-light p-2 mb-2 rounded" t-foreach="match_following_pairs" t-as="pair">
+                                    <field name="right_option" nolabel="1" readonly="1" />
                                 </div>
                             </div>
                         </div>
@@ -55,132 +56,5 @@
         </field>
     </record>
     
-    <!-- Create standalone template for match following question rendering -->
-    <template id="match_following_question_template" name="Match Following Question">
-        <div class="js_match_following match_following_container" 
-             t-att-data-question-id="question.id">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Items</h5>
-                    <div class="o_match_questions">
-                        <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
-                                <span t-esc="pair.left_option"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h5>Match With</h5>
-                    <div class="o_match_answers">
-                        <t t-foreach="question.match_following_pairs" t-as="pair">
-                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
-                                <span t-esc="pair.right_option"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-            <input type="hidden" t-att-name="'question_' + str(question.id)" value="[]"/>
-        </div>
-    </template>
-    
-    <!-- Inject our JavaScript to handle match following questions -->
-    <template id="match_following_assets" inherit_id="survey.layout">
-        <xpath expr="//head" position="inside">
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    // Wait for survey to be fully rendered
-                    setTimeout(function() {
-                        // Find survey questions in the page
-                        $('.js_question-wrapper').each(function() {
-                            var $question = $(this);
-                            // Check if it might be a match following question
-                            var type = $question.data('questionType') || '';
-                            
-                            if (type === 'match_following' || $question.find('.match_following_container').length > 0) {
-                                console.log('Found match following question, initializing...');
-                                
-                                // Create match following container if needed
-                                if ($question.find('.match_following_container').length === 0) {
-                                    var questionId = $question.data('questionId');
-                                    var surveyToken = window.location.pathname.split('/').filter(Boolean).pop();
-                                    
-                                    // Fetch question data via AJAX if needed
-                                    // For now, we'll just use a placeholder
-                                    console.log('Match following needs initialization for question:', questionId);
-                                }
-                            }
-                        });
-                        
-                        if (window.customElearnMatchFollowing &amp;&amp; 
-                            typeof window.customElearnMatchFollowing.setup === 'function') {
-                            window.customElearnMatchFollowing.setup();
-                        }
-                    }, 500);
-                });
-            </script>
-            <style>
-                .match_following_container {
-                    padding: 15px;
-                    background-color: #f8f9fa;
-                    border-radius: 4px;
-                    margin-bottom: 20px;
-                }
-                
-                .o_match_questions, .o_match_answers {
-                    min-height: 150px;
-                    border: 1px dashed #ccc;
-                    padding: 10px;
-                    border-radius: 4px;
-                    background-color: #fff;
-                }
-                
-                .o_match_item {
-                    background-color: #fff;
-                    border: 1px solid #dee2e6;
-                    padding: 10px;
-                    margin: 5px 0;
-                    border-radius: 4px;
-                    cursor: move;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }
-                
-                .o_match_item.dragging {
-                    opacity: 0.5;
-                }
-                
-                .o_match_item.matched {
-                    background-color: #d4edda;
-                    border-color: #c3e6cb;
-                }
-                
-                .drop-zone-active {
-                    background-color: #e8f4ff;
-                    border-color: #b8daff;
-                }
-                
-                /* Preview styles */
-                .match_following_preview {
-                    background-color: #f8f9fa;
-                    border-radius: 4px;
-                    padding: 10px;
-                }
-                
-                .match_left_preview, .match_right_preview {
-                    border: 1px dashed #ccc;
-                    padding: 10px;
-                    min-height: 100px;
-                    background-color: #fff;
-                }
-                
-                .match_item {
-                    background-color: #e9ecef;
-                    padding: 8px;
-                    margin: 5px 0;
-                    border-radius: 4px;
-                }
-            </style>
-        </xpath>
-    </template>
+    <!-- Create a separate file for survey templates to avoid conflicts -->
 </odoo>
