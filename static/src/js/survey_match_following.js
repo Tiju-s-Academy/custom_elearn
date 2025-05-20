@@ -180,67 +180,54 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         // Update hidden input
         const hiddenInput = container.querySelector('input[type="hidden"]');
         if (hiddenInput) {
-            hiddenInput.value = JSON.stringify(matches);
+            const matchesJson = JSON.stringify(matches);
+            hiddenInput.value = matchesJson;
+            
+            console.log("Updated matches:", matchesJson);
         }
         
-        // Get survey token and question ID from URL or container
-        const url = window.location.href;
-        let surveyToken = '';
-        let questionId = '';
+        // Get question ID from container
+        let questionId = container.getAttribute('data-question-id');
         
-        // Try to get from URL first
-        const urlMatch = url.match(/\/survey\/[^/]+\/([^/]+)/);
-        if (urlMatch && urlMatch[1]) {
-            surveyToken = urlMatch[1];
-        }
-        
-        // Get question ID from container or input name
-        questionId = container.getAttribute('data-question-id');
+        // If not found directly, try to extract from hidden input name
         if (!questionId && hiddenInput) {
             const inputName = hiddenInput.getAttribute('name');
-            const questionMatch = inputName ? inputName.match(/question_(\d+)/) : null;
-            if (questionMatch && questionMatch[1]) {
-                questionId = questionMatch[1];
-            }
-        }
-        
-        // If we couldn't find the IDs, use document structure
-        if (!surveyToken || !questionId) {
-            // Try to find from form
-            const form = document.querySelector('form.o_survey_form');
-            if (form) {
-                const formAction = form.getAttribute('action');
-                if (formAction) {
-                    const formMatch = formAction.match(/\/survey\/([^/]+)/);
-                    if (formMatch && formMatch[1]) {
-                        surveyToken = formMatch[1];
-                    }
-                }
-                
-                // If we have the form, get the first question ID as fallback
-                if (!questionId) {
-                    const questionInput = form.querySelector('input[name^="question_"]');
-                    if (questionInput) {
-                        const nameMatch = questionInput.getAttribute('name').match(/question_(\d+)/);
-                        if (nameMatch && nameMatch[1]) {
-                            questionId = nameMatch[1];
-                        }
-                    }
+            if (inputName) {
+                const questionMatch = inputName.match(/question_(\d+)/);
+                if (questionMatch && questionMatch[1]) {
+                    questionId = questionMatch[1];
                 }
             }
         }
         
-        // If we have both tokens, submit
-        if (surveyToken && questionId) {
-            console.log(`Submitting answer for question ${questionId} in survey ${surveyToken}`);
-            submitToServer(surveyToken, questionId, JSON.stringify(matches));
+        // Get survey token from URL
+        const url = window.location.href;
+        const tokenMatch = url.match(/\/survey\/([^\/]+)/);
+        let surveyToken = tokenMatch ? tokenMatch[1] : '';
+        
+        // Handle additional URL formats
+        if (!surveyToken) {
+            // Try alternative URL format
+            const altMatch = url.match(/\/begin\/([^\/]+)/);
+            if (altMatch && altMatch[1]) {
+                surveyToken = altMatch[1];
+            }
+        }
+        
+        // Submit if we have both questionId and surveyToken
+        if (questionId && surveyToken) {
+            console.log(`Submitting match following data for question ${questionId} in survey ${surveyToken}`);
+            submitToServer(surveyToken, questionId, matches);
         } else {
-            console.error('Could not determine survey token or question ID');
+            console.error("Cannot submit: Missing questionId or surveyToken", {
+                questionId: questionId,
+                surveyToken: surveyToken
+            });
         }
     }
     
-    // Submit to server
-    function submitToServer(surveyToken, questionId, matchesJson) {
+    // Submit data to the server
+    function submitToServer(surveyToken, questionId, matches) {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `/survey/submit/${surveyToken}/${questionId}`, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
@@ -248,20 +235,30 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    console.log('Answer submitted successfully');
+                    console.log('Match following data submitted successfully');
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        console.log('Server response:', response);
+                    } catch (e) {
+                        console.warn('Could not parse server response');
+                    }
                 } else {
-                    console.error('Error submitting answer:', xhr.status);
+                    console.error('Error submitting match following data:', xhr.status, xhr.statusText);
                 }
             }
         };
         
-        xhr.send(JSON.stringify({
+        // Prepare the request payload
+        const payload = {
             jsonrpc: '2.0',
             method: 'call',
             params: {
-                value_match_following: matchesJson
+                value_match_following: JSON.stringify(matches)
             },
-            id: new Date().getTime()
-        }));
+            id: Date.now()
+        };
+        
+        console.log('Sending payload:', payload);
+        xhr.send(JSON.stringify(payload));
     }
 })();
