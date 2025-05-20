@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 import json
 import logging
+import time
 
 _logger = logging.getLogger(__name__)
 
@@ -176,3 +177,70 @@ class SurveyMatchFollowing(http.Controller):
             questions = request.env['survey.question'].sudo().search([('id', '=', question.id)])
         
         return request.render('custom_elearn.match_following_question_template')
+    
+    # Add this method to your existing controller to create a test survey
+
+    @http.route(['/survey/match_following/create_test'], type='http', auth='user', website=True)
+    def create_match_following_test(self, **kw):
+        try:
+            # Create a new test survey
+            survey = request.env['survey.survey'].sudo().create({
+                'title': 'Match Following Test Survey',
+                'access_token': 'test_match_following_' + str(int(time.time())),
+                'access_mode': 'public',
+                'users_login_required': False,
+                'questions_layout': 'page_per_question',
+                'is_time_limited': False,
+            })
+            
+            # Create a match following question
+            question = request.env['survey.question'].sudo().create({
+                'title': 'Match the following items',
+                'survey_id': survey.id, 
+                'sequence': 1,
+                'question_type': 'match_following',
+                'shuffle_right_options': True,
+            })
+            
+            # Add sample match following pairs
+            pairs = [
+                ('Apple', 'Fruit', 1.0),
+                ('Dog', 'Animal', 1.0),
+                ('Car', 'Vehicle', 1.0),
+                ('Chair', 'Furniture', 1.0),
+                ('Python', 'Programming Language', 1.0)
+            ]
+            
+            for i, (left, right, score) in enumerate(pairs):
+                request.env['survey.question.match'].sudo().create({
+                    'question_id': question.id,
+                    'sequence': i + 1,
+                    'left_option': left,
+                    'right_option': right,
+                    'score': score
+                })
+            
+            # Create a standard question as well for comparison
+            request.env['survey.question'].sudo().create({
+                'title': 'How satisfied are you with this match following functionality?',
+                'survey_id': survey.id,
+                'sequence': 2,
+                'question_type': 'simple_choice',
+                'suggested_answer_ids': [
+                    (0, 0, {'value': 'Very satisfied', 'answer_score': 2}),
+                    (0, 0, {'value': 'Satisfied', 'answer_score': 1}),
+                    (0, 0, {'value': 'Not satisfied', 'answer_score': 0})
+                ]
+            })
+            
+            # Redirect to the new survey
+            survey_url = f'/survey/start/{survey.access_token}'
+            return request.redirect(survey_url)
+            
+        except Exception as e:
+            _logger.exception(f"Error creating test survey: {str(e)}")
+            return request.render('website.http_error', {
+                'status_code': 500,
+                'status_message': "Error creating test survey"
+
+            })            })
