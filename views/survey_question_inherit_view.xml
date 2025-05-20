@@ -13,7 +13,7 @@
             
             <!-- Add match following pairs tab -->
             <xpath expr="//page[@name='answers']" position="after">
-                <page string="Match Following Pairs" attrs="{'invisible': [('question_type', '!=', 'match_following')]}">
+                <page string="Match Following Pairs" invisible="question_type != 'match_following'">
                     <field name="match_following_pairs" context="{'default_question_id': id}">
                         <tree editable="bottom">
                             <field name="sequence" widget="handle"/>
@@ -31,7 +31,7 @@
             
             <!-- Add preview to question form without using Owl directives -->
             <xpath expr="//notebook" position="before">
-                <div class="o_match_following_preview" attrs="{'invisible': [('question_type', '!=', 'match_following')]}">
+                <div class="o_match_following_preview" invisible="question_type != 'match_following'">
                     <h5>Match Following Preview</h5>
                     <div class="row">
                         <div class="col-6">
@@ -55,6 +55,4 @@
             </xpath>
         </field>
     </record>
-    
-    <!-- Create a separate file for survey templates to avoid conflicts -->
 </odoo>
