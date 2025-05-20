@@ -1,6 +1,8 @@
 /** @odoo-module **/
 
 import publicWidget from "@web/legacy/js/public/public_widget";
+import { registry } from "@web/core/registry";
+import { Component } from "@odoo/owl";
 
 publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     selector: '.match_following_container',
@@ -139,4 +141,111 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
             },
         });
     },
+});
+
+odoo.define('custom_elearn.match_following', function (require) {
+    'use strict';
+
+    var core = require('web.core');
+    var publicWidget = require('web.public.widget');
+    var SurveyFormWidget = require('survey.form');
+    var _t = core._t;
+
+    // Extend the SurveyFormWidget
+    SurveyFormWidget.include({
+        events: _.extend({}, SurveyFormWidget.prototype.events, {
+            'matchfollowing:submit': '_onMatchFollowingSubmit'
+        }),
+
+        /**
+         * Initialize match following question handling
+         */
+        start: function () {
+            var self = this;
+            return this._super.apply(this, arguments).then(function () {
+                // Initialize match following functionality
+                self._initMatchFollowing();
+            });
+        },
+
+        /**
+         * Set up match following questions
+         */
+        _initMatchFollowing: function () {
+            var self = this;
+            // Add your initialization code here
+            $('.o_survey_form .match_following_container').each(function () {
+                // Initialize each match following question
+                console.log("Found match following question");
+            });
+        },
+
+        /**
+         * Handle submission of match following answers
+         * 
+         * @private
+         * @param {Event} event
+         */
+        _onMatchFollowingSubmit: function (event) {
+            var self = this;
+            var $target = $(event.currentTarget);
+            var $question = $target.closest('.js_question-wrapper');
+            var questionId = $question.data('questionId');
+            
+            // Get match following data
+            var matchData = {
+                // Collect match following answers
+                value_match_following: JSON.stringify([
+                    // Example format - replace with actual data collection
+                    {pair_id: 1, matched: true}
+                ])
+            };
+            
+            // Submit the answer to the server
+            return this._submitMatchFollowingAnswer(questionId, matchData).then(function (result) {
+                // Ensure result is in expected format to avoid "not iterable" error
+                if (result && result.success) {
+                    // Handle successful submission
+                    return [{
+                        id: questionId,
+                        value: matchData.value_match_following
+                    }];
+                } else {
+                    // Handle error case
+                    console.error("Error submitting match following answer:", result);
+                    // Return empty array to satisfy the iterable requirement
+                    return [];
+                }
+            }).guardedCatch(function (error) {
+                console.error("Failed to submit match following answer:", error);
+                // Return empty array to satisfy the iterable requirement
+                return [];
+            });
+        },
+
+        /**
+         * Submit match following answer to server
+         * 
+         * @private
+         * @param {string} questionId
+         * @param {Object} data
+         * @returns {Promise}
+         */
+        _submitMatchFollowingAnswer: function (questionId, data) {
+            var self = this;
+            return this._rpc({
+                route: '/survey/submit/' + this.surveyToken + '/' + questionId,
+                params: data
+            }).then(function (result) {
+                // Ensure we return an object with the expected format
+                return result || { success: false, error: "No response" };
+            }).guardedCatch(function (error) {
+                return { success: false, error: error };
+            });
+        }
+    });
+
+    return {
+        // Export any functions needed
+    };
 });

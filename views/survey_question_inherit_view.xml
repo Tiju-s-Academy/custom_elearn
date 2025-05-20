@@ -23,8 +23,9 @@
                 </div>
             </xpath>
 
+            <!-- Add data-type attribute to help frontend identify question type -->
             <xpath expr="//page[@name='answers']" position="inside">
-                <field name="match_following_pairs" context="{'default_question_id': id}" invisible="question_type != 'match_following'">
+                <field name="match_following_pairs" context="{'default_question_id': id}" invisible="question_type != 'match_following'" data-type="match_following">
                     <tree editable="bottom">
                         <field name="left_option"/>
                         <field name="right_option"/>
@@ -34,4 +35,24 @@
             </xpath>
         </field>
     </record>
+    
+    <!-- Add template for frontend rendering of match following question -->
+    <template id="match_following_question_template" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question_matrix')]" position="after">
+            <div t-if="question.question_type == 'match_following'" class="js_match_following match_following_container" 
+                 t-att-data-question-id="question.id">
+                <!-- Match following UI will be handled by JavaScript -->
+                <div class="match_following_pairs">
+                    <t t-foreach="question.match_following_pairs" t-as="pair">
+                        <div class="match_pair" t-att-data-pair-id="pair.id">
+                            <div class="left_option"><t t-esc="pair.left_option"/></div>
+                            <div class="right_option"><t t-esc="pair.right_option"/></div>
+                        </div>
+                    </t>
+                </div>
+                <!-- Hidden field to store the match following answer -->
+                <input type="hidden" name="match_following_result" class="match_following_result" />
+            </div>
+        </xpath>
+    </template>
 </odoo>
