@@ -48,13 +48,27 @@
         </xpath>
     </template>
 
-    <template id="match_following_question" inherit_id="survey.question">
-        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
-            <!-- If you have a form in your template -->
-            <form t-if="question.question_type == 'match_following'" class="match_following_form">
-                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                <!-- ...existing form content... -->
-            </form>
+    <template id="survey_question_inherit" inherit_id="survey.survey_fill_form_page">
+        <xpath expr="//div[hasclass('o_survey_form')]" position="inside">
+            <!-- Add custom JavaScript initialization -->
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    // Initialize match following functionality when the page is ready
+                    if (window.survey_match_following) {
+                        window.survey_match_following.initMatchFollowing();
+                    }
+                });
+            </script>
+        </xpath>
+    </template>
+
+    <!-- Add CSRF token to the survey page -->
+    <template id="survey_page_inherit" inherit_id="survey.survey_layout">
+        <xpath expr="//head" position="inside">
+            <script type="text/javascript">
+                // Make CSRF token available to JavaScript
+                var csrf_token = "<t t-esc="request.csrf_token()"/>";
+            </script>
         </xpath>
     </template>
 </odoo>

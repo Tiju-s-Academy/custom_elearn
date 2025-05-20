@@ -13,6 +13,7 @@
     'data': [
         'security/ir.model.access.csv',
         'views/survey_question_inherit_view.xml',
+        'views/assets.xml',
         'views/survey_templates.xml',
         # 'views/minimal_assets.xml',  # Try this first
     ],
