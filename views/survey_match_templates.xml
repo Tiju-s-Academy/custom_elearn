@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Define a simple template for match following questions -->
+    <!-- Define a standalone template for match following questions -->
     <template id="match_following_question_template">
-        <div class="js_match_following match_following_container">
+        <div class="js_match_following match_following_container" t-att-data-question-id="question.id">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
                     <div class="o_match_questions">
-                        <!-- Placeholder for left options -->
-                        <div class="o_match_item">Option 1</div>
-                        <div class="o_match_item">Option 2</div>
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
+                                <span t-esc="pair.left_option"/>
+                            </div>
+                        </t>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h5>Match With</h5>
                     <div class="o_match_answers">
-                        <!-- Placeholder for right options -->
-                        <div class="o_match_item">Answer 1</div>
-                        <div class="o_match_item">Answer 2</div>
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" t-att-data-pair-id="pair.id" t-att-data-score="pair.score">
+                                <span t-esc="pair.right_option"/>
+                            </div>
+                        </t>
                     </div>
                 </div>
             </div>
-            <input type="hidden" name="match_following_result" value="[]"/>
+            <input type="hidden" t-att-name="'question_' + str(question.id)" value="[]"/>
         </div>
     </template>
     
@@ -36,59 +40,26 @@
                 .o_match_item.matched { background-color: #d4edda; border-color: #c3e6cb; }
                 .drop-zone-active { background-color: #e8f4ff; border-color: #b8daff; }
             </style>
-            
-            <script type="text/javascript">
-                // Simple script to initialize drag and drop
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Find containers
-                    var containers = document.querySelectorAll('.match_following_container');
-                    if (containers.length === 0) return;
-                    
-                    // Initialize each container
-                    containers.forEach(function(container) {
-                        // Make items draggable
-                        var items = container.querySelectorAll('.o_match_item');
-                        items.forEach(function(item) {
-                            item.setAttribute('draggable', true);
-                            
-                            item.addEventListener('dragstart', function(e) {
-                                e.dataTransfer.setData('text', this.textContent);
-                                this.classList.add('dragging');
-                            });
-                            
-                            item.addEventListener('dragend', function() {
-                                this.classList.remove('dragging');
-                            });
-                        });
-                        
-                        // Set up drop zones
-                        var zones = container.querySelectorAll('.o_match_questions, .o_match_answers');
-                        zones.forEach(function(zone) {
-                            zone.addEventListener('dragover', function(e) {
-                                e.preventDefault();
-                                this.classList.add('drop-zone-active');
-                            });
-                            
-                            zone.addEventListener('dragleave', function() {
-                                this.classList.remove('drop-zone-active');
-                            });
-                            
-                            zone.addEventListener('drop', function(e) {
-                                e.preventDefault();
-                                var text = e.dataTransfer.getData('text');
-                                var draggedItem = document.querySelector('.dragging');
-                                
-                                if (draggedItem) {
-                                    draggedItem.classList.add('matched');
-                                    draggedItem.classList.remove('dragging');
-                                }
-                                
-                                this.classList.remove('drop-zone-active');
-                            });
-                        });
-                    });
-                });
-            </script>
         </xpath>
+    </template>
+    
+    <!-- Add a demo route to test match following questions -->
+    <template id="survey_demo_page">
+        <t t-call="website.layout">
+            <div class="container mt-4">
+                <h1>Match Following Demo</h1>
+                <div class="card">
+                    <div class="card-body">
+                        <t t-if="question">
+                            <h3 t-esc="question.title"/>
+                            <t t-call="custom_elearn.match_following_question_template"/>
+                        </t>
+                        <t t-else="">
+                            <div class="alert alert-info">No match following questions found.</div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
     </template>
 </odoo>
