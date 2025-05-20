@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Direct injection of JS and CSS without relying on Odoo's asset system -->
+    <template id="survey_direct_inject" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <!-- Add CSS directly -->
+            <style>
+                .match_following_container {
+                    margin: 20px 0;
+                }
+                .o_match_questions, .o_match_answers {
+                    min-height: 50px;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    margin-bottom: 15px;
+                }
+                .o_match_item {
+                    padding: 8px;
+                    background-color: #f8f9fa;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                    margin: 5px 0;
+                    cursor: move;
+                }
+                .o_match_item.dragging {
+                    opacity: 0.5;
+                }
+                .o_match_item.matched {
+                    background-color: #d4edda;
+                    border-color: #c3e6cb;
+                }
+                .drop-zone-active {
+                    background-color: #e9ecef;
+                    border-color: #adb5bd;
+                }
+            </style>
+            
+            <!-- Add JavaScript directly -->
+            <script type="text/javascript">
+                // Wait for the DOM to be fully loaded
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log("Setting up match following questions...");
+                    
+                    // Find all match following containers
+                    var containers = document.querySelectorAll('.match_following_container');
+                    if (containers.length > 0) {
+                        console.log("Found match following containers:", containers.length);
+                        
+                        // Initialize each container
+                        containers.forEach(function(container) {
+                            // Set up drag and drop
+                            var items = container.querySelectorAll('.o_match_item');
+                            items.forEach(function(item) {
+                                item.setAttribute('draggable', true);
+                                
+                                item.addEventListener('dragstart', function(e) {
+                                    e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
+                                    this.classList.add('dragging');
+                                });
+                                
+                                item.addEventListener('dragend', function() {
+                                    document.querySelectorAll('.dragging').forEach(function(el) {
+                                        el.classList.remove('dragging');
+                                    });
+                                });
+                            });
+                            
+                            // Set up drop zones
+                            var dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
+                            dropZones.forEach(function(zone) {
+                                zone.addEventListener('dragover', function(e) {
+                                    e.preventDefault();
+                                    this.classList.add('drop-zone-active');
+                                });
+                                
+                                zone.addEventListener('dragleave', function() {
+                                    this.classList.remove('drop-zone-active');
+                                });
+                                
+                                zone.addEventListener('drop', function(e) {
+                                    e.preventDefault();
+                                    var pairId = e.dataTransfer.getData('text/plain');
+                                    
+                                    if (this.classList.contains('o_match_answers')) {
+                                        var questionItem = container.querySelector('.o_match_questions .o_match_item[data-pair-id="' + pairId + '"]');
+                                        if (questionItem) {
+                                            questionItem.setAttribute('data-matched', 'true');
+                                            questionItem.classList.add('matched');
+                                        }
+                                    }
+                                    
+                                    this.classList.remove('drop-zone-active');
+                                    
+                                    // Update hidden field
+                                    var matches = [];
+                                    container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]').forEach(function(item) {
+                                        matches.push({
+                                            pair_id: item.getAttribute('data-pair-id'),
+                                            matched: true
+                                        });
+                                    });
+                                    
+                                    var hiddenInput = container.querySelector('input[type="hidden"]');
+                                    if (hiddenInput) {
+                                        hiddenInput.value = JSON.stringify(matches);
+                                    }
+                                });
+                            });
+                        });
+                    }
+                });
+            </script>
+        </xpath>
+    </template>
+</odoo>
