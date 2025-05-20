@@ -14,10 +14,10 @@
         'security/ir.model.access.csv',
         'views/survey_question_inherit_view.xml',
         'views/survey_templates.xml',
-        'views/minimal_assets.xml',  # Try this first
+        # 'views/minimal_assets.xml',  # Try this first
     ],
     'assets': {
-        'web.assets_frontend': [
+        'survey.assets_frontend': [
             'custom_elearn/static/src/css/survey_match_following.css',
             'custom_elearn/static/src/js/survey_match_following.js',
         ],
