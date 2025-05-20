@@ -3,7 +3,7 @@
     'version': '17.0.1.0.0',
     'depends': [
         'web',
-        'website',  # Add this dependency for website assets
+        'website',
         'survey',
     ],
     'author': 'Tijus Academy',
@@ -14,7 +14,7 @@
         'security/ir.model.access.csv',
         'views/survey_question_inherit_view.xml',
         'views/survey_templates.xml',
-        'views/simplified_assets.xml',
+        'views/minimal_assets.xml',  # Try this first
     ],
     'assets': {
         'web.assets_frontend': [
