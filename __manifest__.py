@@ -2,20 +2,20 @@
     'name': 'Survey Match Following',
     'version': '17.0.1.0.0',
     'depends': [
+        'base',
         'web',
-        'website',
         'survey',
+        # Make sure all dependencies are listed
     ],
     'author': 'Tijus Academy',
     'category': 'Academic',
     'summary': 'Add new e-learn quiz type',
     'description': "Adds drag and drop question types in e-learn module",
     'data': [
-        'security/ir.model.access.csv',
-        'views/survey_question_inherit_view.xml',
-        'views/assets.xml',
-        'views/survey_templates.xml',
-        # 'views/minimal_assets.xml',  # Try this first
+        'views/minimal.xml',
+        # Comment these temporarily until we resolve the issue
+        # 'views/assets.xml',
+        # 'views/survey_direct_assets.xml',
     ],
     'assets': {
         'survey.assets_frontend': [

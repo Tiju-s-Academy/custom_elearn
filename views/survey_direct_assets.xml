@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Direct injection into survey pages -->
+    <template id="survey_layout_external_assets" inherit_id="web.layout">
+        <xpath expr="//head" position="inside">
+            <t t-if="request and request.httprequest.path and '/survey/' in request.httprequest.path">
+                <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+                <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+            </t>
+        </xpath>
+    </template>
+</odoo>

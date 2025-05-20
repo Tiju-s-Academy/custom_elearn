@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Minimal asset inclusion approach -->
+    <template id="minimal_assets">
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+    </template>
+</odoo>
