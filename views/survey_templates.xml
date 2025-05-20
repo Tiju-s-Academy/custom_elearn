@@ -70,7 +70,7 @@
                         console.log('Match following initialized for:', questionTitle, '(ID:', questionId, ')');
                         
                         // If we need to dynamically create the structure
-                        if (window.customElearnMatchFollowing && window.customElearnMatchFollowing.setup) {
+                        if (window.customElearnMatchFollowing &amp;&amp; window.customElearnMatchFollowing.setup) {
                             window.customElearnMatchFollowing.setup();
                         }
                     }

@@ -172,12 +172,17 @@
         if (!formWrapper) return;
         
         // Get either the question ID from the element or from the page URL
-        let questionId = formWrapper.getAttribute('data-question-id');
+        let questionId = container.getAttribute('data-question-id') || 
+                         formWrapper.getAttribute('data-question-id');
+                         
+        // Try to extract question ID from the hidden input name
         if (!questionId) {
-            // Try to get from the closest question wrapper
-            const questionWrapper = container.closest('.js_question-wrapper');
-            if (questionWrapper) {
-                questionId = questionWrapper.getAttribute('data-question-id');
+            const hiddenInput = container.querySelector('input[type="hidden"]');
+            if (hiddenInput && hiddenInput.name) {
+                const nameMatch = hiddenInput.name.match(/question_(\d+)/);
+                if (nameMatch) {
+                    questionId = nameMatch[1];
+                }
             }
         }
         
@@ -223,19 +228,52 @@
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    console.log('Answer submitted successfully');
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.result && response.result.length > 0) {
+                            console.log('Answer submitted successfully:', response.result);
+                        } else {
+                            console.warn('Empty response from server:', response);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing response:', e);
+                    }
                 } else {
-                    console.error('Error submitting answer:', xhr.statusText);
+                    console.error('Error submitting answer:', xhr.status, xhr.statusText);
                 }
             }
         };
+        
+        // Make sure to format the request properly for Odoo's JSON-RPC
         xhr.send(JSON.stringify({
             jsonrpc: '2.0',
             method: 'call',
             params: {
-                value_match_following: JSON.stringify(matches)
-            }
+                value_match_following: JSON.stringify(matches),
+                csrf_token: getCsrfToken()
+            },
+            id: new Date().getTime()
         }));
+    }
+
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+        // Try to get it from the cookie
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrf_token=')) {
+                return cookie.substring('csrf_token='.length);
+            }
+        }
+        
+        // Try to get it from a meta tag
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            return metaTag.getAttribute('content');
+        }
+        
+        return '';
     }
 
     // Find the form wrapper for a container
