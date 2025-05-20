@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Template for match following questions in survey -->
+    <!-- Create match following template -->
     <template id="match_following_question_template" name="Match Following Question">
         <div class="js_match_following match_following_container" 
-             t-att-data-question-id="question.id"
-             t-att-data-shuffle-left="question.shuffle_left_options"
-             t-att-data-shuffle-right="question.shuffle_right_options">
+             t-att-data-question-id="question.id">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
@@ -32,24 +30,7 @@
         </div>
     </template>
     
-    <!-- Extend survey core templates to inject our template -->
-    <template id="survey_question_type_extend" inherit_id="survey.survey_fill_form_page">
-        <xpath expr="//div[hasclass('o_survey_form')]" position="inside">
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    // Find questions of type match_following and initialize them
-                    setTimeout(function() {
-                        if (window.customElearnMatchFollowing &amp;&amp; 
-                            typeof window.customElearnMatchFollowing.setup === 'function') {
-                            window.customElearnMatchFollowing.setup();
-                        }
-                    }, 500);
-                });
-            </script>
-        </xpath>
-    </template>
-    
-    <!-- Add CSS and JS assets for match following -->
+    <!-- Directly inject CSS into survey layout -->
     <template id="match_following_assets" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
             <style>
@@ -92,6 +73,159 @@
                     border-color: #b8daff;
                 }
             </style>
+            
+            <!-- JavaScript for match following functionality -->
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    console.log("Initializing match following functionality");
+                    
+                    // Initialize drag and drop
+                    setupMatchFollowing();
+                    
+                    // Function to set up match following
+                    function setupMatchFollowing() {
+                        // Find all match following containers
+                        const containers = document.querySelectorAll('.match_following_container');
+                        if (containers.length === 0) {
+                            console.log("No match following containers found");
+                            return;
+                        }
+                        
+                        console.log("Found match following containers:", containers.length);
+                        
+                        // Initialize each container
+                        containers.forEach(function(container) {
+                            initContainer(container);
+                        });
+                    }
+
+                    // Initialize a single match following container
+                    function initContainer(container) {
+                        // Set up drag and drop
+                        const items = container.querySelectorAll('.o_match_item');
+                        items.forEach(function(item) {
+                            item.setAttribute('draggable', true);
+                            
+                            // Add event listeners for drag and drop
+                            item.addEventListener('dragstart', onDragStart);
+                            item.addEventListener('dragend', onDragEnd);
+                        });
+
+                        // Add event listeners to drop zones
+                        const dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
+                        dropZones.forEach(function(zone) {
+                            zone.addEventListener('dragover', onDragOver);
+                            zone.addEventListener('dragleave', onDragLeave);
+                            zone.addEventListener('drop', onDrop);
+                        });
+                    }
+
+                    // Event handler for drag start
+                    function onDragStart(e) {
+                        e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
+                        this.classList.add('dragging');
+                    }
+
+                    // Event handler for drag over
+                    function onDragOver(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        this.classList.add('drop-zone-active');
+                    }
+
+                    // Event handler for drag leave
+                    function onDragLeave(e) {
+                        this.classList.remove('drop-zone-active');
+                    }
+
+                    // Event handler for drag end
+                    function onDragEnd(e) {
+                        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+                        document.querySelectorAll('.drop-zone-active').forEach(el => el.classList.remove('drop-zone-active'));
+                    }
+
+                    // Event handler for drop
+                    function onDrop(e) {
+                        e.preventDefault();
+                        const container = findClosestContainer(this);
+                        if (!container) return;
+                        
+                        const pairId = e.dataTransfer.getData('text/plain');
+                        const target = this;
+                        
+                        // Handle dropping in answer column
+                        if (target.classList.contains('o_match_answers')) {
+                            // Mark the question item as matched
+                            const questionItem = container.querySelector(`.o_match_questions .o_match_item[data-pair-id="${pairId}"]`);
+                            if (questionItem) {
+                                questionItem.setAttribute('data-matched', 'true');
+                                questionItem.classList.add('matched');
+                            }
+                            
+                            // Remove existing highlight
+                            container.querySelectorAll(`.o_match_answers .matched-with-${pairId}`).forEach(el => {
+                                el.classList.remove(`matched-with-${pairId}`);
+                            });
+                            
+                            // Highlight the answer item
+                            const answerItem = container.querySelector(`.o_match_answers .o_match_item[data-pair-id="${pairId}"]`);
+                            if (answerItem) {
+                                answerItem.classList.add('matched');
+                                answerItem.classList.add(`matched-with-${pairId}`);
+                            }
+                        }
+                        
+                        // Update the matches in the hidden input
+                        updateMatches(container);
+                        
+                        // Remove any drag and drop styling
+                        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+                        target.classList.remove('drop-zone-active');
+                    }
+
+                    // Update the matches in the hidden input
+                    function updateMatches(container) {
+                        const matches = [];
+                        
+                        // Collect all matched pairs
+                        container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]').forEach(function(item) {
+                            const pairId = item.getAttribute('data-pair-id');
+                            matches.push({
+                                pair_id: pairId,
+                                matched: true
+                            });
+                        });
+                        
+                        // Update the hidden input
+                        const hiddenInput = container.querySelector('input[type="hidden"]');
+                        if (hiddenInput) {
+                            hiddenInput.value = JSON.stringify(matches);
+                            
+                            // Trigger a change event for form handling
+                            const event = new Event('change', { bubbles: true });
+                            hiddenInput.dispatchEvent(event);
+                        }
+                    }
+
+                    // Find the closest match following container to an element
+                    function findClosestContainer(element) {
+                        let current = element;
+                        while (current && !current.classList.contains('match_following_container')) {
+                            current = current.parentElement;
+                        }
+                        return current;
+                    }
+                });
+            </script>
+        </xpath>
+    </template>
+    
+    <!-- Add match following handling to the survey form -->
+    <template id="survey_match_following_question" inherit_id="survey.question_container">
+        <xpath expr="//div[hasclass('o_survey_question_matrix')]" position="after">
+            <t t-if="question.question_type == 'match_following'">
+                <t t-call="custom_elearn.match_following_question_template"/>
+            </t>
         </xpath>
     </template>
 </odoo>

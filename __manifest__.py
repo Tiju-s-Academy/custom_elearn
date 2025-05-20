@@ -5,7 +5,6 @@
         'base',
         'web',
         'survey',
-        'website',
     ],
     'author': 'Tijus Academy',
     'category': 'Academic',
