@@ -1,3 +1,8 @@
+/* Basic styling for match following questions */
+.match_following_container {
+    margin: 20px 0;
+}
+
 /* Match Following Container */
 .o_survey_match_following_wrapper {
     margin: 20px 0;

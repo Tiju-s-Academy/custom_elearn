@@ -3,7 +3,7 @@
 import publicWidget from "@web/legacy/js/public/public_widget";
 
 publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
-    selector: '.o_survey_match_following_wrapper',
+    selector: '.match_following_container',
     events: {
         'dragstart .o_match_item': '_onDragStart',
         'dragover .o_match_questions, .o_match_answers': '_onDragOver',
@@ -13,9 +13,12 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     },
 
     start: function () {
-        this._super.apply(this, arguments);
+        var def = this._super.apply(this, arguments);
+        // Initialize the match following functionality
+        console.log("Survey Match Following initialized");
         this._setupDragDrop();
         this._loadStoredAnswers();
+        return def;
     },
 
     _setupDragDrop: function() {
