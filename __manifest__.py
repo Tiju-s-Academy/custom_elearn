@@ -11,6 +11,8 @@
     'summary': 'Add new e-learn quiz type',
     'description': "Adds drag and drop question types in e-learn module",
     'data': [
+        # Use the dedicated survey match assets
+        'views/survey_match_assets.xml',
         'views/direct_inject.xml',
         'views/fallback_assets.xml',
         'views/assets.xml',

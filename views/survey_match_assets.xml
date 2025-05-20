@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="survey_match_assets" name="Survey Match Following Assets">
+        <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+    </template>
+
+    <!-- Inject our assets into survey layout -->
+    <template id="survey_layout_inherit" inherit_id="survey.layout" name="Survey Layout with Match Following Assets">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.survey_match_assets"/>
+        </xpath>
+    </template>
+</odoo>
