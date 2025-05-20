@@ -111,5 +111,16 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         
         // Update the hidden input with the JSON value
         this.$('input[type="hidden"]').val(JSON.stringify(matches));
+    },
+
+    _submitSurvey: async function(surveyToken, questionId, data) {
+        await this.env.services.rpc({
+            route: `/survey/submit/${surveyToken}/${questionId}`, // Use actual question ID
+            params: data,
+        }).then((response) => {
+            // Handle the response
+        }).catch((error) => {
+            console.error("Error submitting survey:", error);
+        });
     }
 });
