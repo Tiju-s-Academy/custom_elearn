@@ -26,8 +26,7 @@ class SurveyMatchFollowing(http.Controller):
                 _logger.error(f"Survey not found with token: {survey_token}")
                 return []
                 
-            # Find user input in two ways:
-            # 1. Using the user access token from cookie
+            # Find user input
             user_input = False
             if user_access_token:
                 user_input = request.env['survey.user_input'].sudo().search([
@@ -35,14 +34,12 @@ class SurveyMatchFollowing(http.Controller):
                     ('access_token', '=', user_access_token)
                 ], limit=1)
         
-            # 2. If not found, try using the survey token
             if not user_input:
                 user_input = request.env['survey.user_input'].sudo().search([
                     ('survey_id', '=', survey.id),
                     ('access_token', '=', survey_token)
                 ], limit=1)
         
-            # 3. Last resort - find most recent user input for this survey
             if not user_input:
                 user_input = request.env['survey.user_input'].sudo().search([
                     ('survey_id', '=', survey.id),
@@ -83,25 +80,32 @@ class SurveyMatchFollowing(http.Controller):
                 _logger.error(f"Question not found: {question_id}")
                 return []
                 
-            # Get the answer value - try different paths
+            # Get the value from params - IMPORTANT CHANGE: Accept object directly
             value_match_following = None
-            
-            # Try to extract from params
-            if post and isinstance(post, dict):
-                if 'params' in post and isinstance(post['params'], dict):
-                    value_match_following = post['params'].get('value_match_following')
-                    _logger.info(f"Found value in params: {value_match_following}")
-            
-                # Try direct access
-                elif 'value_match_following' in post:
-                    value_match_following = post.get('value_match_following')
-                    _logger.info(f"Found value directly in post: {value_match_following}")
+            if post and isinstance(post, dict) and 'params' in post and isinstance(post['params'], dict):
+                params = post.get('params', {})
+                value_match_following = params.get('value_match_following')
+                
+                # If value is already an object (list), convert to string
+                if isinstance(value_match_following, list):
+                    _logger.info(f"Found value as object in params: {value_match_following}")
+                else:
+                    _logger.info(f"Found value as string in params: {value_match_following}")
+                    # Try to parse if it's a string
+                    try:
+                        value_match_following = json.loads(value_match_following)
+                    except (json.JSONDecodeError, TypeError):
+                        _logger.warning("Invalid JSON format for value_match_following")
+                        value_match_following = []
                 
             if not value_match_following:
                 _logger.warning("No match following data provided")
-                value_match_following = '[]'  # Default empty array
+                value_match_following = []
                 
             _logger.info(f"Match following data: {value_match_following}")
+            
+            # Convert back to string for storage
+            value_match_following_str = json.dumps(value_match_following)
             
             # Create or update user input line
             user_input_line = request.env['survey.user_input.line'].sudo().search([
@@ -112,7 +116,7 @@ class SurveyMatchFollowing(http.Controller):
             if user_input_line:
                 # Update existing answer
                 user_input_line.sudo().write({
-                    'value_match_following': value_match_following,
+                    'value_match_following': value_match_following_str,
                     'answer_type': 'match_following'
                 })
                 _logger.info(f"Updated answer for question {question.id}")
@@ -121,7 +125,7 @@ class SurveyMatchFollowing(http.Controller):
                 request.env['survey.user_input.line'].sudo().create({
                     'user_input_id': user_input.id,
                     'question_id': question.id,
-                    'value_match_following': value_match_following,
+                    'value_match_following': value_match_following_str,
                     'answer_type': 'match_following'
                 })
                 _logger.info(f"Created new answer for question {question.id}")
