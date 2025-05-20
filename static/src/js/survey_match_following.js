@@ -73,308 +73,329 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
 });
 
 /**
- * Match Following Question for Surveys
+ * Match Following functionality for Odoo surveys
+ * Simplified version that focuses on correctly submitting data
  */
 (function() {
     'use strict';
-
-    // Initialize when the DOM is loaded
+    
+    // When document is ready
     document.addEventListener('DOMContentLoaded', function() {
-        // Short delay to ensure survey form is fully rendered
-        setTimeout(initMatchFollowing, 500);
-    });
-
-    function initMatchFollowing() {
-        console.log("Initializing match following questions...");
+        console.log("Match following module initialized");
         
-        // Look for match following containers
-        var containers = document.querySelectorAll('.match_following_container');
-        if (containers.length === 0) {
-            // Try to find places to inject our components
-            injectMatchFollowing();
-            return;
-        }
-
-        // Set up each container
-        containers.forEach(function(container) {
-            setupDragDrop(container);
-        });
-    }
-
-    function injectMatchFollowing() {
-        // Look for question data in the page to identify match following questions
-        const surveyForm = document.querySelector('.o_survey_form');
-        if (!surveyForm) return;
-
-        // Try to find special question wrappers
-        const questionWrappers = surveyForm.querySelectorAll('.js_question-wrapper');
-        
-        questionWrappers.forEach(function(wrapper) {
-            // Look for a question type identifier
-            const questionType = wrapper.getAttribute('data-question-type') || 
-                                wrapper.querySelector('input[name="question_type"]')?.value;
+        // Wait a bit for Odoo to finish rendering
+        setTimeout(function() {
+            initMatchFollowing();
             
+            // Try again after a few seconds to catch late-rendered elements
+            setTimeout(initMatchFollowing, 3000);
+        }, 1000);
+    });
+    
+    // Main initialization function
+    function initMatchFollowing() {
+        // First check for existing containers
+        var containers = document.querySelectorAll('.match_following_container');
+        
+        if (containers.length === 0) {
+            console.log("No match following containers found, searching for questions...");
+            detectAndInjectMatchFollowing();
+        } else {
+            console.log(`Found ${containers.length} match following containers`);
+            containers.forEach(initContainer);
+        }
+    }
+    
+    // Detect match following questions and inject UI
+    function detectAndInjectMatchFollowing() {
+        // Look for match following questions in the form
+        var questions = document.querySelectorAll('.o_survey_form .js_question');
+        
+        questions.forEach(function(question) {
+            // Check if this is a match following question
+            var questionType = question.querySelector('input[name="question_type"]')?.value;
             if (questionType === 'match_following') {
-                console.log('Found match following question, injecting UI');
-                createMatchFollowingUI(wrapper);
+                console.log("Found a match following question, injecting UI");
+                injectMatchFollowingUI(question);
             }
         });
     }
-
-    function createMatchFollowingUI(wrapper) {
-        // Create container
-        const container = document.createElement('div');
-        container.className = 'match_following_container';
+    
+    // Inject the UI for a match following question
+    function injectMatchFollowingUI(questionElement) {
+        // Find question ID from the form element
+        var questionId = '';
+        var inputElement = questionElement.querySelector('input[name^="question_"]');
         
-        // Try to get question ID
-        const questionIdInput = wrapper.querySelector('input[name^="question_"]');
-        let questionId = '';
-        if (questionIdInput) {
-            const nameMatch = questionIdInput.name.match(/question_(\d+)/);
+        if (inputElement) {
+            var nameMatch = inputElement.name.match(/question_(\d+)/);
             if (nameMatch && nameMatch[1]) {
                 questionId = nameMatch[1];
-                container.setAttribute('data-question-id', questionId);
             }
         }
         
-        // Create basic structure
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'row mt-3';
+        if (!questionId) {
+            console.error("Could not determine question ID");
+            return;
+        }
         
-        // Left column
-        const leftCol = document.createElement('div');
+        console.log(`Creating UI for question ID ${questionId}`);
+        
+        // Create our container
+        var container = document.createElement('div');
+        container.className = 'match_following_container mt-3';
+        container.setAttribute('data-question-id', questionId);
+        
+        // Create row with columns
+        var row = document.createElement('div');
+        row.className = 'row';
+        
+        // Left column (items)
+        var leftCol = document.createElement('div');
         leftCol.className = 'col-md-6';
+        leftCol.innerHTML = '<h5>Items</h5><div class="o_match_questions p-3 border rounded"></div>';
         
-        const leftTitle = document.createElement('h5');
-        leftTitle.textContent = 'Items';
-        
-        const leftContainer = document.createElement('div');
-        leftContainer.className = 'o_match_questions border rounded p-3';
-        
-        leftCol.appendChild(leftTitle);
-        leftCol.appendChild(leftContainer);
-        
-        // Right column
-        const rightCol = document.createElement('div');
+        // Right column (matches)
+        var rightCol = document.createElement('div');
         rightCol.className = 'col-md-6';
+        rightCol.innerHTML = '<h5>Match With</h5><div class="o_match_answers p-3 border rounded"></div>';
         
-        const rightTitle = document.createElement('h5');
-        rightTitle.textContent = 'Match With';
-        
-        const rightContainer = document.createElement('div');
-        rightContainer.className = 'o_match_answers border rounded p-3';
-        
-        rightCol.appendChild(rightTitle);
-        rightCol.appendChild(rightContainer);
-        
-        // Add columns to row
-        rowDiv.appendChild(leftCol);
-        rowDiv.appendChild(rightCol);
-        
-        // Add hidden input to store results
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = questionIdInput ? questionIdInput.name : ('question_' + questionId);
-        hiddenInput.value = '[]';
-        
-        // Add everything to container
-        container.appendChild(rowDiv);
-        container.appendChild(hiddenInput);
+        // Assemble the UI
+        row.appendChild(leftCol);
+        row.appendChild(rightCol);
+        container.appendChild(row);
         
         // Add instructions
-        const helpText = document.createElement('p');
-        helpText.className = 'text-muted mt-2';
-        helpText.textContent = 'Drag items from the left column to match with items in the right column.';
-        container.appendChild(helpText);
+        var instructions = document.createElement('p');
+        instructions.className = 'text-muted mt-2';
+        instructions.textContent = 'Drag items from left to right to match them correctly.';
+        container.appendChild(instructions);
         
-        // Insert into wrapper
-        const targetElement = wrapper.querySelector('.o_survey_question') || wrapper;
-        targetElement.appendChild(container);
+        // Use the original input element for storing results
+        if (inputElement) {
+            // Move the input inside our container
+            container.appendChild(inputElement);
+        } else {
+            // Create a new input if none exists
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'question_' + questionId;
+            input.value = '[]';
+            container.appendChild(input);
+        }
+        
+        // Insert the UI
+        questionElement.appendChild(container);
+        
+        // Add sample data for testing
+        addSampleItems(container);
         
         // Set up drag and drop
-        setupDragDrop(container);
-        
-        // Try to load sample data (mock data for testing)
-        loadSampleData(container);
+        initContainer(container);
     }
-
-    function loadSampleData(container) {
-        // Sample items (normally these would come from the server)
-        const sampleItems = [
-            { id: 1, left: "Apple", right: "Fruit" },
-            { id: 2, left: "Dog", right: "Animal" },
-            { id: 3, left: "Car", right: "Vehicle" }
+    
+    // Add sample items for testing
+    function addSampleItems(container) {
+        var questionId = container.getAttribute('data-question-id');
+        
+        // Sample data
+        var sampleItems = [
+            { id: 'pair_1_' + questionId, left: 'Apple', right: 'Fruit' },
+            { id: 'pair_2_' + questionId, left: 'Dog', right: 'Animal' },
+            { id: 'pair_3_' + questionId, left: 'Carrot', right: 'Vegetable' }
         ];
         
-        const leftContainer = container.querySelector('.o_match_questions');
-        const rightContainer = container.querySelector('.o_match_answers');
+        var leftContainer = container.querySelector('.o_match_questions');
+        var rightContainer = container.querySelector('.o_match_answers');
         
         if (leftContainer && rightContainer) {
             sampleItems.forEach(function(item) {
-                // Create left item
-                const leftItem = document.createElement('div');
-                leftItem.className = 'o_match_item';
+                // Left item
+                var leftItem = document.createElement('div');
+                leftItem.className = 'o_match_item mb-2 p-2 bg-white border rounded shadow-sm';
                 leftItem.setAttribute('data-pair-id', item.id);
                 leftItem.textContent = item.left;
                 leftContainer.appendChild(leftItem);
                 
-                // Create right item
-                const rightItem = document.createElement('div');
-                rightItem.className = 'o_match_item';
+                // Right item
+                var rightItem = document.createElement('div');
+                rightItem.className = 'o_match_item mb-2 p-2 bg-white border rounded shadow-sm';
                 rightItem.setAttribute('data-pair-id', item.id);
                 rightItem.textContent = item.right;
                 rightContainer.appendChild(rightItem);
             });
         }
     }
-
-    function setupDragDrop(container) {
-        // Set up drag and drop for items
-        const items = container.querySelectorAll('.o_match_item');
+    
+    // Initialize a single container
+    function initContainer(container) {
+        // Add drag and drop functionality to all items
+        var items = container.querySelectorAll('.o_match_item');
         items.forEach(function(item) {
-            item.setAttribute('draggable', 'true');
+            item.setAttribute('draggable', true);
             
+            // Drag start event
             item.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
                 this.classList.add('dragging');
             });
             
+            // Drag end event
             item.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
-                container.querySelectorAll('.drop-zone-active').forEach(function(el) {
-                    el.classList.remove('drop-zone-active');
-                });
             });
         });
         
         // Set up drop zones
-        const dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
+        var dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
         dropZones.forEach(function(zone) {
+            // Drag over event
             zone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 this.classList.add('drop-zone-active');
             });
             
+            // Drag leave event
             zone.addEventListener('dragleave', function() {
                 this.classList.remove('drop-zone-active');
             });
             
+            // Drop event
             zone.addEventListener('drop', function(e) {
                 e.preventDefault();
-                const pairId = e.dataTransfer.getData('text/plain');
+                this.classList.remove('drop-zone-active');
                 
+                var pairId = e.dataTransfer.getData('text/plain');
+                
+                // Handle the matching only when dropping in the answers zone
                 if (this.classList.contains('o_match_answers')) {
-                    // When dropping in the answers area, mark as matched
-                    const questionItem = container.querySelector(`.o_match_questions .o_match_item[data-pair-id="${pairId}"]`);
-                    if (questionItem) {
+                    var questionItem = container.querySelector(`.o_match_questions .o_match_item[data-pair-id="${pairId}"]`);
+                    var answerItem = container.querySelector(`.o_match_answers .o_match_item[data-pair-id="${pairId}"]`);
+                    
+                    // Mark items as matched
+                    if (questionItem && answerItem) {
                         questionItem.setAttribute('data-matched', 'true');
                         questionItem.classList.add('matched');
-                    }
-                    
-                    const answerItem = container.querySelector(`.o_match_answers .o_match_item[data-pair-id="${pairId}"]`);
-                    if (answerItem) {
                         answerItem.classList.add('matched');
                     }
                     
-                    // Update the form input
-                    updateMatches(container);
+                    // Update the input value and submit
+                    updateInputAndSubmit(container);
                 }
-                
-                this.classList.remove('drop-zone-active');
             });
         });
     }
-
-    function updateMatches(container) {
-        const matches = [];
+    
+    // Update the input value and submit the data
+    function updateInputAndSubmit(container) {
+        var matches = [];
+        var questionId = container.getAttribute('data-question-id');
         
-        // Get all matched items
+        // Get all matched pairs
         container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]').forEach(function(item) {
-            const pairId = item.getAttribute('data-pair-id');
             matches.push({
-                pair_id: pairId,
+                pair_id: item.getAttribute('data-pair-id'),
                 matched: true
             });
         });
         
-        // Update hidden input
-        const hiddenInput = container.querySelector('input[type="hidden"]');
-        if (hiddenInput) {
-            hiddenInput.value = JSON.stringify(matches);
+        // Update the input field
+        var input = container.querySelector('input[type="hidden"]');
+        if (input) {
+            var matchesJson = JSON.stringify(matches);
+            input.value = matchesJson;
+            console.log(`Updated input value for question ${questionId}:`, matchesJson);
             
-            // Trigger change event for form handling
-            const event = new Event('change', {bubbles: true});
-            hiddenInput.dispatchEvent(event);
-            
-            // Try to save the answer using standard survey submission
-            saveAnswer(container, matches);
+            // Trigger input change event for form handling
+            var event = new Event('change', { bubbles: true });
+            input.dispatchEvent(event);
         }
+        
+        // Submit directly to the server
+        submitToServer(questionId, matches);
     }
-
-    function saveAnswer(container, matches) {
-        try {
-            // Try to use Odoo's standard survey functions if available
-            if (window.survey_form_validate) {
-                // This is the standard function used by Odoo surveys
-                return;
-            }
-            
-            // Otherwise use our direct submission method
-            const form = document.querySelector('.o_survey_form');
-            if (!form) return;
-            
-            const questionInput = container.querySelector('input[type="hidden"]');
-            if (!questionInput) return;
-            
-            const questionId = container.getAttribute('data-question-id');
-            if (!questionId) return;
-            
-            // Get survey token from URL or form
-            let surveyToken = '';
-            const url = window.location.href;
-            const tokenMatch = url.match(/\/survey\/([^\/]+)/) || url.match(/\/begin\/([^\/]+)/);
-            if (tokenMatch) {
-                surveyToken = tokenMatch[1];
-            } else if (form.action) {
-                const actionMatch = form.action.match(/\/survey\/([^\/]+)/);
-                if (actionMatch) {
-                    surveyToken = actionMatch[1];
-                }
-            }
-            
-            if (!surveyToken) return;
-            
-            // Submit the answer
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/survey/submit/${surveyToken}/${questionId}`, true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(JSON.stringify({
+    
+    // Submit data directly to the server
+    function submitToServer(questionId, matches) {
+        // Get survey token from URL
+        var surveyToken = getSurveyToken();
+        if (!surveyToken) {
+            console.error('Could not determine survey token');
+            return;
+        }
+        
+        console.log(`Submitting match following data: questionId=${questionId}, surveyToken=${surveyToken}`);
+        console.log('Match data:', JSON.stringify(matches));
+        
+        // Use fetch API for the request
+        fetch(`/survey/submit/${surveyToken}/${questionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
                 jsonrpc: '2.0',
                 method: 'call',
                 params: {
                     value_match_following: JSON.stringify(matches)
                 },
                 id: Date.now()
-            }));
-        } catch (e) {
-            console.error('Error saving answer:', e);
-        }
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server response:', data);
+        })
+        .catch(error => {
+            console.error('Error submitting data:', error);
+        });
     }
-
-    // Add CSS styles to the page
+    
+    // Extract survey token from URL
+    function getSurveyToken() {
+        var url = window.location.href;
+        
+        // Try different URL patterns
+        var patterns = [
+            /\/survey\/([^\/]+)/,
+            /\/begin\/([^\/]+)/,
+            /\/session\/([^\/]+)/
+        ];
+        
+        for (var i = 0; i < patterns.length; i++) {
+            var match = url.match(patterns[i]);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        
+        // Try to find token in a form
+        var form = document.querySelector('.o_survey_form');
+        if (form && form.action) {
+            var actionMatch = form.action.match(/\/survey\/([^\/]+)/);
+            if (actionMatch && actionMatch[1]) {
+                return actionMatch[1];
+            }
+        }
+        
+        return null;
+    }
+    
+    // Add the necessary styles
     function addStyles() {
-        const style = document.createElement('style');
+        var style = document.createElement('style');
         style.textContent = `
-            .match_following_container { padding: 15px; background-color: #f8f9fa; border-radius: 4px; margin-bottom: 20px; }
+            .match_following_container { padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-bottom: 20px; }
             .o_match_questions, .o_match_answers { min-height: 150px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px; background-color: #fff; }
-            .o_match_item { background-color: #fff; border: 1px solid #dee2e6; padding: 10px; margin: 5px 0; border-radius: 4px; cursor: move; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            .o_match_item.dragging { opacity: 0.5; }
+            .o_match_item { background-color: #fff; border: 1px solid #dee2e6; padding: 10px; margin: 5px 0; border-radius: 4px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .o_match_item.dragging { opacity: 0.5; cursor: grabbing; }
             .o_match_item.matched { background-color: #d4edda; border-color: #c3e6cb; }
             .drop-zone-active { background-color: #e8f4ff; border-color: #b8daff; }
         `;
         document.head.appendChild(style);
     }
     
-    // Add the styles
+    // Add styles to the page
     addStyles();
 })();
