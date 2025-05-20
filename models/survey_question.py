@@ -55,3 +55,12 @@ class SurveyQuestionMatch(models.Model):
     left_option = fields.Char('Left Option', required=True, translate=True)
     right_option = fields.Char('Right Option', required=True, translate=True)
     score = fields.Float('Score', default=1.0)
+
+
+class SurveyUserInputLine(models.Model):
+    _inherit = 'survey.user_input.line'
+
+    # Add the missing field for match following answers
+    answer_type = fields.Selection(selection_add=[('match_following', 'Match Following')],
+                                  ondelete={'match_following': 'cascade'})
+    value_match_following = fields.Text('Match Following')

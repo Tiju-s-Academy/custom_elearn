@@ -40,6 +40,7 @@
                 .o_match_item.matched { background-color: #d4edda; border-color: #c3e6cb; }
                 .drop-zone-active { background-color: #e8f4ff; border-color: #b8daff; }
             </style>
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"></script>
         </xpath>
     </template>
     

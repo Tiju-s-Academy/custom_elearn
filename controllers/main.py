@@ -53,6 +53,7 @@ class SurveyMatchFollowing(http.Controller):
                 user_input = request.env['survey.user_input'].sudo().create({
                     'survey_id': survey.id,
                     'partner_id': request.env.user.partner_id.id if not request.env.user._is_public() else False,
+                    'state': 'in_progress',
                 })
             
             _logger.info(f"Found/Created user_input (session) with ID: {user_input.id}, state: {user_input.state}")
@@ -93,11 +94,14 @@ class SurveyMatchFollowing(http.Controller):
             ], limit=1)
             
             if user_input_line:
+                # Update existing answer
                 user_input_line.sudo().write({
-                    'value_match_following': value_match_following
+                    'value_match_following': value_match_following,
+                    'answer_type': 'match_following'
                 })
                 _logger.info(f"Updated answer for question {question.id}")
             else:
+                # Create new answer line
                 request.env['survey.user_input.line'].sudo().create({
                     'user_input_id': user_input.id,
                     'question_id': question.id,
