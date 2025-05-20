@@ -72,40 +72,167 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     }
 });
 
+/**
+ * Match Following Question for Surveys
+ */
 (function() {
     'use strict';
-    
-    // Wait for the DOM to load
+
+    // Initialize when the DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("Match following module loaded");
-        initMatchFollowing();
+        // Short delay to ensure survey form is fully rendered
+        setTimeout(initMatchFollowing, 500);
     });
-    
-    // Initialize match following functionality
+
     function initMatchFollowing() {
-        // Find all match following containers
-        const containers = document.querySelectorAll('.match_following_container');
+        console.log("Initializing match following questions...");
         
+        // Look for match following containers
+        var containers = document.querySelectorAll('.match_following_container');
         if (containers.length === 0) {
-            console.log("No match following containers found");
+            // Try to find places to inject our components
+            injectMatchFollowing();
             return;
         }
-        
-        console.log(`Found ${containers.length} match following container(s)`);
-        
-        // Initialize each container
+
+        // Set up each container
         containers.forEach(function(container) {
             setupDragDrop(container);
         });
     }
-    
-    // Set up drag and drop functionality
-    function setupDragDrop(container) {
-        // Make items draggable
-        const items = container.querySelectorAll('.o_match_item');
+
+    function injectMatchFollowing() {
+        // Look for question data in the page to identify match following questions
+        const surveyForm = document.querySelector('.o_survey_form');
+        if (!surveyForm) return;
+
+        // Try to find special question wrappers
+        const questionWrappers = surveyForm.querySelectorAll('.js_question-wrapper');
         
+        questionWrappers.forEach(function(wrapper) {
+            // Look for a question type identifier
+            const questionType = wrapper.getAttribute('data-question-type') || 
+                                wrapper.querySelector('input[name="question_type"]')?.value;
+            
+            if (questionType === 'match_following') {
+                console.log('Found match following question, injecting UI');
+                createMatchFollowingUI(wrapper);
+            }
+        });
+    }
+
+    function createMatchFollowingUI(wrapper) {
+        // Create container
+        const container = document.createElement('div');
+        container.className = 'match_following_container';
+        
+        // Try to get question ID
+        const questionIdInput = wrapper.querySelector('input[name^="question_"]');
+        let questionId = '';
+        if (questionIdInput) {
+            const nameMatch = questionIdInput.name.match(/question_(\d+)/);
+            if (nameMatch && nameMatch[1]) {
+                questionId = nameMatch[1];
+                container.setAttribute('data-question-id', questionId);
+            }
+        }
+        
+        // Create basic structure
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row mt-3';
+        
+        // Left column
+        const leftCol = document.createElement('div');
+        leftCol.className = 'col-md-6';
+        
+        const leftTitle = document.createElement('h5');
+        leftTitle.textContent = 'Items';
+        
+        const leftContainer = document.createElement('div');
+        leftContainer.className = 'o_match_questions border rounded p-3';
+        
+        leftCol.appendChild(leftTitle);
+        leftCol.appendChild(leftContainer);
+        
+        // Right column
+        const rightCol = document.createElement('div');
+        rightCol.className = 'col-md-6';
+        
+        const rightTitle = document.createElement('h5');
+        rightTitle.textContent = 'Match With';
+        
+        const rightContainer = document.createElement('div');
+        rightContainer.className = 'o_match_answers border rounded p-3';
+        
+        rightCol.appendChild(rightTitle);
+        rightCol.appendChild(rightContainer);
+        
+        // Add columns to row
+        rowDiv.appendChild(leftCol);
+        rowDiv.appendChild(rightCol);
+        
+        // Add hidden input to store results
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = questionIdInput ? questionIdInput.name : ('question_' + questionId);
+        hiddenInput.value = '[]';
+        
+        // Add everything to container
+        container.appendChild(rowDiv);
+        container.appendChild(hiddenInput);
+        
+        // Add instructions
+        const helpText = document.createElement('p');
+        helpText.className = 'text-muted mt-2';
+        helpText.textContent = 'Drag items from the left column to match with items in the right column.';
+        container.appendChild(helpText);
+        
+        // Insert into wrapper
+        const targetElement = wrapper.querySelector('.o_survey_question') || wrapper;
+        targetElement.appendChild(container);
+        
+        // Set up drag and drop
+        setupDragDrop(container);
+        
+        // Try to load sample data (mock data for testing)
+        loadSampleData(container);
+    }
+
+    function loadSampleData(container) {
+        // Sample items (normally these would come from the server)
+        const sampleItems = [
+            { id: 1, left: "Apple", right: "Fruit" },
+            { id: 2, left: "Dog", right: "Animal" },
+            { id: 3, left: "Car", right: "Vehicle" }
+        ];
+        
+        const leftContainer = container.querySelector('.o_match_questions');
+        const rightContainer = container.querySelector('.o_match_answers');
+        
+        if (leftContainer && rightContainer) {
+            sampleItems.forEach(function(item) {
+                // Create left item
+                const leftItem = document.createElement('div');
+                leftItem.className = 'o_match_item';
+                leftItem.setAttribute('data-pair-id', item.id);
+                leftItem.textContent = item.left;
+                leftContainer.appendChild(leftItem);
+                
+                // Create right item
+                const rightItem = document.createElement('div');
+                rightItem.className = 'o_match_item';
+                rightItem.setAttribute('data-pair-id', item.id);
+                rightItem.textContent = item.right;
+                rightContainer.appendChild(rightItem);
+            });
+        }
+    }
+
+    function setupDragDrop(container) {
+        // Set up drag and drop for items
+        const items = container.querySelectorAll('.o_match_item');
         items.forEach(function(item) {
-            item.setAttribute('draggable', true);
+            item.setAttribute('draggable', 'true');
             
             item.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
@@ -114,12 +241,14 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
             
             item.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
+                container.querySelectorAll('.drop-zone-active').forEach(function(el) {
+                    el.classList.remove('drop-zone-active');
+                });
             });
         });
         
         // Set up drop zones
         const dropZones = container.querySelectorAll('.o_match_questions, .o_match_answers');
-        
         dropZones.forEach(function(zone) {
             zone.addEventListener('dragover', function(e) {
                 e.preventDefault();
@@ -132,43 +261,34 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
             
             zone.addEventListener('drop', function(e) {
                 e.preventDefault();
-                
                 const pairId = e.dataTransfer.getData('text/plain');
-                const target = this;
                 
-                if (target.classList.contains('o_match_answers')) {
-                    // Mark the item as matched
+                if (this.classList.contains('o_match_answers')) {
+                    // When dropping in the answers area, mark as matched
                     const questionItem = container.querySelector(`.o_match_questions .o_match_item[data-pair-id="${pairId}"]`);
                     if (questionItem) {
                         questionItem.setAttribute('data-matched', 'true');
                         questionItem.classList.add('matched');
                     }
                     
-                    // Highlight the answer item
                     const answerItem = container.querySelector(`.o_match_answers .o_match_item[data-pair-id="${pairId}"]`);
                     if (answerItem) {
                         answerItem.classList.add('matched');
                     }
+                    
+                    // Update the form input
+                    updateMatches(container);
                 }
                 
-                // Update matches and submit
-                updateAndSubmitMatches(container);
-                
-                // Remove styling
-                target.classList.remove('drop-zone-active');
-                const draggingItems = document.querySelectorAll('.dragging');
-                draggingItems.forEach(function(item) {
-                    item.classList.remove('dragging');
-                });
+                this.classList.remove('drop-zone-active');
             });
         });
     }
-    
-    // Update matches and submit to server
-    function updateAndSubmitMatches(container) {
+
+    function updateMatches(container) {
         const matches = [];
         
-        // Collect matched pairs
+        // Get all matched items
         container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]').forEach(function(item) {
             const pairId = item.getAttribute('data-pair-id');
             matches.push({
@@ -180,85 +300,81 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         // Update hidden input
         const hiddenInput = container.querySelector('input[type="hidden"]');
         if (hiddenInput) {
-            const matchesJson = JSON.stringify(matches);
-            hiddenInput.value = matchesJson;
+            hiddenInput.value = JSON.stringify(matches);
             
-            console.log("Updated matches:", matchesJson);
+            // Trigger change event for form handling
+            const event = new Event('change', {bubbles: true});
+            hiddenInput.dispatchEvent(event);
+            
+            // Try to save the answer using standard survey submission
+            saveAnswer(container, matches);
         }
-        
-        // Get question ID from container
-        let questionId = container.getAttribute('data-question-id');
-        
-        // If not found directly, try to extract from hidden input name
-        if (!questionId && hiddenInput) {
-            const inputName = hiddenInput.getAttribute('name');
-            if (inputName) {
-                const questionMatch = inputName.match(/question_(\d+)/);
-                if (questionMatch && questionMatch[1]) {
-                    questionId = questionMatch[1];
+    }
+
+    function saveAnswer(container, matches) {
+        try {
+            // Try to use Odoo's standard survey functions if available
+            if (window.survey_form_validate) {
+                // This is the standard function used by Odoo surveys
+                return;
+            }
+            
+            // Otherwise use our direct submission method
+            const form = document.querySelector('.o_survey_form');
+            if (!form) return;
+            
+            const questionInput = container.querySelector('input[type="hidden"]');
+            if (!questionInput) return;
+            
+            const questionId = container.getAttribute('data-question-id');
+            if (!questionId) return;
+            
+            // Get survey token from URL or form
+            let surveyToken = '';
+            const url = window.location.href;
+            const tokenMatch = url.match(/\/survey\/([^\/]+)/) || url.match(/\/begin\/([^\/]+)/);
+            if (tokenMatch) {
+                surveyToken = tokenMatch[1];
+            } else if (form.action) {
+                const actionMatch = form.action.match(/\/survey\/([^\/]+)/);
+                if (actionMatch) {
+                    surveyToken = actionMatch[1];
                 }
             }
+            
+            if (!surveyToken) return;
+            
+            // Submit the answer
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/survey/submit/${surveyToken}/${questionId}`, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'call',
+                params: {
+                    value_match_following: JSON.stringify(matches)
+                },
+                id: Date.now()
+            }));
+        } catch (e) {
+            console.error('Error saving answer:', e);
         }
-        
-        // Get survey token from URL
-        const url = window.location.href;
-        const tokenMatch = url.match(/\/survey\/([^\/]+)/);
-        let surveyToken = tokenMatch ? tokenMatch[1] : '';
-        
-        // Handle additional URL formats
-        if (!surveyToken) {
-            // Try alternative URL format
-            const altMatch = url.match(/\/begin\/([^\/]+)/);
-            if (altMatch && altMatch[1]) {
-                surveyToken = altMatch[1];
-            }
-        }
-        
-        // Submit if we have both questionId and surveyToken
-        if (questionId && surveyToken) {
-            console.log(`Submitting match following data for question ${questionId} in survey ${surveyToken}`);
-            submitToServer(surveyToken, questionId, matches);
-        } else {
-            console.error("Cannot submit: Missing questionId or surveyToken", {
-                questionId: questionId,
-                surveyToken: surveyToken
-            });
-        }
+    }
+
+    // Add CSS styles to the page
+    function addStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .match_following_container { padding: 15px; background-color: #f8f9fa; border-radius: 4px; margin-bottom: 20px; }
+            .o_match_questions, .o_match_answers { min-height: 150px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px; background-color: #fff; }
+            .o_match_item { background-color: #fff; border: 1px solid #dee2e6; padding: 10px; margin: 5px 0; border-radius: 4px; cursor: move; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .o_match_item.dragging { opacity: 0.5; }
+            .o_match_item.matched { background-color: #d4edda; border-color: #c3e6cb; }
+            .drop-zone-active { background-color: #e8f4ff; border-color: #b8daff; }
+        `;
+        document.head.appendChild(style);
     }
     
-    // Submit data to the server
-    function submitToServer(surveyToken, questionId, matches) {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/survey/submit/${surveyToken}/${questionId}`, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    console.log('Match following data submitted successfully');
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        console.log('Server response:', response);
-                    } catch (e) {
-                        console.warn('Could not parse server response');
-                    }
-                } else {
-                    console.error('Error submitting match following data:', xhr.status, xhr.statusText);
-                }
-            }
-        };
-        
-        // Prepare the request payload
-        const payload = {
-            jsonrpc: '2.0',
-            method: 'call',
-            params: {
-                value_match_following: JSON.stringify(matches)
-            },
-            id: Date.now()
-        };
-        
-        console.log('Sending payload:', payload);
-        xhr.send(JSON.stringify(payload));
-    }
+    // Add the styles
+    addStyles();
 })();
