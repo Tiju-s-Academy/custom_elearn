@@ -1,25 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- For Odoo 17, use the correct asset bundle -->
-    <template id="assets_web" inherit_id="web.assets_web">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
-        </xpath>
+    <!-- Create a standalone bundle without inheritance -->
+    <template id="survey_match_following_assets">
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
     </template>
 
-    <!-- Also include in frontend_lazy to ensure it loads with survey pages -->
-    <template id="assets_frontend_lazy" inherit_id="web.assets_frontend_lazy">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+    <!-- Inject directly into document layout -->
+    <template id="layout_assets_inject" inherit_id="web.layout">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.survey_match_following_assets"/>
         </xpath>
     </template>
-
-    <!-- Add to survey specific assets if they exist -->
-    <template id="survey_assets" inherit_id="survey.survey_assets" name="Survey Match Following Survey Assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+    
+    <!-- Try attaching to the survey layout as well -->
+    <template id="survey_layout_inject" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.survey_match_following_assets"/>
         </xpath>
     </template>
 </odoo>

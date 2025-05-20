@@ -5,14 +5,13 @@
         'base',
         'web',
         'survey',
-        # Make sure all dependencies are listed
     ],
     'author': 'Tijus Academy',
     'category': 'Academic',
     'summary': 'Add new e-learn quiz type',
     'description': "Adds drag and drop question types in e-learn module",
     'data': [
-        'views/minimal.xml',
+        'views/fallback_assets.xml',
         'views/assets.xml',
         'views/survey_assets.xml',
     ],

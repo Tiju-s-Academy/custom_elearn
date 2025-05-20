@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="match_following_minimal_assets">
+        <script type="text/javascript">
+            // Simple initialization code
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log("Loading match following functionality");
+                
+                // Check if jQuery is available
+                if (window.jQuery) {
+                    jQuery(function($) {
+                        $('.match_following_container').each(function() {
+                            console.log("Found match following container:", this);
+                            // Basic initialization
+                            $(this).find('.o_match_item').attr('draggable', true);
+                        });
+                    });
+                }
+            });
+        </script>
+    </template>
+    
+    <!-- Inject into multiple possible templates -->
+    <template id="minimal_assets_inject" inherit_id="web.layout">
+        <xpath expr="//head" position="inside">
+            <t t-call="custom_elearn.match_following_minimal_assets"/>
+        </xpath>
+    </template>
+</odoo>
