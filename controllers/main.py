@@ -2,7 +2,7 @@ from odoo import http
 from odoo.http import request
 import json
 import logging
-import time
+import time  # Add this import for the time.time() function
 
 _logger = logging.getLogger(__name__)
 
@@ -242,5 +242,5 @@ class SurveyMatchFollowing(http.Controller):
             return request.render('website.http_error', {
                 'status_code': 500,
                 'status_message': "Error creating test survey"
-
+            })
             })            })
