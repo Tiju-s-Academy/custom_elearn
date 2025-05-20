@@ -32,7 +32,8 @@
     
     <!-- Add match following handling to the survey form -->
     <template id="survey_match_following_question" inherit_id="survey.question_container">
-        <xpath expr="//div[hasclass('o_survey_question_matrix')]" position="after">
+        <!-- Use a more generic XPath that should exist in the parent template -->
+        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
             <t t-if="question.question_type == 'match_following'">
                 <t t-call="custom_elearn.match_following_question_template"/>
             </t>
