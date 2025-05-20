@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <!-- Add to general frontend assets -->
-        <template id="assets_frontend" inherit_id="web.assets_frontend" name="Survey Match Following General Assets">
-            <xpath expr="." position="inside">
-                <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-                <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
-            </xpath>
-        </template>
-        
-        <!-- If you need to add to survey specific assets, use the correct template ID -->
-        <template id="survey_assets" inherit_id="survey.survey_assets" name="Survey Match Following Survey-specific Assets">
-            <xpath expr="." position="inside">
-                <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-                <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
-            </xpath>
-        </template>
-    </data>
+    <!-- Using asset bundles for Odoo 16+ -->
+    <template id="assets_frontend_inherit" inherit_id="web.assets_frontend">
+        <xpath expr="." position="inside">
+            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        </xpath>
+    </template>
+
+    <template id="assets_backend_inherit" inherit_id="web.assets_backend">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </xpath>
+    </template>
+
+    <!-- For survey specific pages, try other common templates -->
+    <template id="survey_assets_inherit" inherit_id="survey.assets_frontend_survey" name="Survey Match Following Assets">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        </xpath>
+    </template>
 </odoo>
