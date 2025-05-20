@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Direct approach: Inject assets into survey templates -->
+    <template id="survey_page" inherit_id="survey.survey_page" name="Survey Match Following Assets">
+        <xpath expr="//head" position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+            <link rel="stylesheet" href="/custom_elearn/static/src/css/survey_match_following.css"/>
+        </xpath>
+    </template>
+
     <template id="question_match_following" name="Question: Match Following">
         <t t-set="answer_line" t-value="answer_lines.filtered(lambda line: line.question_id == question)"/>
         <!-- Add this to your existing template -->

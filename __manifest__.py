@@ -3,6 +3,7 @@
     'version': '17.0.1.0.0',
     'depends': [
         'web',
+        'website',  # Add this dependency for website assets
         'survey',
     ],
     'author': 'Tijus Academy',
