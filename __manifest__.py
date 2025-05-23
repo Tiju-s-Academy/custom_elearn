@@ -17,6 +17,7 @@
     'assets': {
         'web.assets_frontend': [
             '/custom_elearn/static/src/js/survey_match_following.js',
+            '/custom_elearn/static/src/js/survey_form_patch.js',
         ],
     },
     'installable': True,

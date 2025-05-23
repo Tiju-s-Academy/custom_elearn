@@ -88,46 +88,8 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     }
 });
 
-// Patch the SurveyFormWidget to handle match following questions properly
-import { patch } from "@web/core/utils/patch";
-const formWidgetsRegistry = require("@web/legacy/js/public/public_widget_registry");
-const SurveyFormWidget = formWidgetsRegistry.get("survey_form");
-
-if (SurveyFormWidget) {
-    patch(SurveyFormWidget.prototype, 'custom_elearn.SurveyFormWidgetPatch', {
-        _submitForm: function () {
-            // Before submitting the form, make sure all match following answers are processed
-            const matchFollowing = $('.o_survey_match_following_wrapper').map(function() {
-                const widget = $(this).data('widget');
-                if (widget && widget._updateMatches) {
-                    widget._updateMatches();
-                }
-            });
-            
-            // Call the original method
-            return this._super.apply(this, arguments);
-        },
-        
-        _onNextScreenDone: function (result) {
-            // Make the original method more robust
-            try {
-                // If there's no result or result is not iterable, provide a default
-                if (!result || typeof result[Symbol.iterator] !== 'function') {
-                    console.warn("Survey received invalid result format, using default");
-                    result = [];
-                }
-                
-                // Call the original method with the sanitized result
-                return this._super.apply(this, arguments);
-            } catch (error) {
-                console.error("Error in _onNextScreenDone:", error);
-                // Provide fallback behavior - go to next question if possible
-                this.trigger_up('reload');
-                return Promise.resolve();
-            }
-        }
-    });
-}
+// Remove the patching code that's causing issues
+// The patch functionality would need Odoo 17-specific implementation
 
 export default {
     SurveyMatchFollowing: publicWidget.registry.SurveyMatchFollowing
