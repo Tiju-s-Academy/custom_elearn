@@ -1,31 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Define our template without inheritance -->
-    <template id="match_following_assets" name="Match Following Assets">
-        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-    </template>
-    
-    <!-- Create a direct template for match following questions -->
-    <template id="match_following_question_content" name="Survey: Match Following Question">
-        <div class="match_following_container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Items</h5>
-                    <div class="match_items_left">
-                        <!-- Items will be inserted here by JavaScript -->
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h5>Match With</h5>
-                    <div class="match_items_right">
-                        <!-- Items will be inserted here by JavaScript -->
-                    </div>
-                </div>
-            </div>
-            <p class="text-muted mt-2">Drag items from left to match with items on the right.</p>
-        </div>
-    </template>
-
     <!-- Simply inject our script directly into the survey layout -->
     <template id="survey_layout_with_match_following" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
@@ -62,5 +36,50 @@
                 }
             </style>
         </xpath>
+    </template>
+    
+    <!-- Make the template available for survey rendering -->
+    <template id="survey_question_type_extend" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question')]" position="inside">
+            <t t-if="question.question_type == 'match_following'">
+                <t t-call="custom_elearn.match_following_question_template"/>
+            </t>
+        </xpath>
+    </template>
+    
+    <!-- Template for match following question type -->
+    <template id="match_following_question_template" name="Survey Match Following Question">
+        <div class="match_following_container js_question-wrapper" 
+             t-att-data-question-id="question.id" 
+             t-att-data-shuffle-left="question.shuffle_left_options"
+             t-att-data-shuffle-right="question.shuffle_right_options">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="o_match_questions">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" 
+                                t-att-data-pair-id="pair.id"
+                                t-att-data-score="pair.score">
+                                <span t-field="pair.left_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Drag to match</h5>
+                    <div class="o_match_answers">
+                        <t t-foreach="question.match_following_pairs" t-as="pair">
+                            <div class="o_match_item" 
+                                t-att-data-pair-id="pair.id"
+                                t-att-data-score="pair.score">
+                                <span t-field="pair.right_option"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" t-att-name="'question_%s' % question.id" t-att-value="user_input_line.value_match_following if user_input_line else '[]'"/>
+        </div>
     </template>
 </odoo>

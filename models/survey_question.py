@@ -37,32 +37,3 @@ class SurveyQuestion(models.Model):
             }
 
         return result
-
-
-class SurveyQuestionMatch(models.Model):
-    _name = 'survey.question.match'
-    _description = 'Survey Question Match Following Pairs'
-    _rec_name = 'left_option'
-    _order = 'sequence, id'
-
-    sequence = fields.Integer('Sequence', default=10)
-    question_id = fields.Many2one(
-        'survey.question',
-        string='Question',
-        required=True,
-        ondelete='cascade'
-    )
-    left_option = fields.Char('Left Option', required=True, translate=True)
-    right_option = fields.Char('Right Option', required=True, translate=True)
-    score = fields.Float('Score', default=1.0)
-
-
-class SurveyUserInputLine(models.Model):
-    _inherit = 'survey.user_input.line'
-
-    # Add new answer type for match following
-    answer_type = fields.Selection(selection_add=[('match_following', 'Match Following')],
-                                  ondelete={'match_following': 'cascade'})
-
-    # Field to store match following answers
-    value_match_following = fields.Text('Match Following')
