@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Include our assets properly in Odoo 17 format -->
-    <template id="survey_match_assets" inherit_id="survey.survey_assets" name="Survey Match Following Assets">
+    <!-- Change to inherit from web.assets_frontend which is guaranteed to exist -->
+    <template id="assets_frontend" inherit_id="web.assets_frontend" name="Survey Match Following Frontend Assets">
         <xpath expr="." position="inside">
             <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </xpath>
+    </template>
+    
+    <!-- Also inject our script directly into the survey layout to be sure -->
+    <template id="survey_layout_assets" inherit_id="survey.layout" name="Survey Match Following Layout Assets">
+        <xpath expr="//head" position="inside">
+            <script type="text/javascript">
+                // Simple initialization script
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log("Survey Match Following: Ready");
+                });
+            </script>
         </xpath>
     </template>
 </odoo>
