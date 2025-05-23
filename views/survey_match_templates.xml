@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Minimal template that just includes the JS file -->
-    <template id="minimal_survey_match_assets" name="Survey Match Assets">
-        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+    <!-- Include our assets properly in Odoo 17 format -->
+    <template id="survey_match_assets" inherit_id="survey.survey_assets" name="Survey Match Following Assets">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </xpath>
     </template>
 </odoo>

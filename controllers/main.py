@@ -24,7 +24,7 @@ class SurveyMatchFollowing(http.Controller):
             
             if not survey:
                 _logger.error(f"Survey not found with token: {survey_token}")
-                return []
+                return {'error': 'Survey not found'}
                 
             # Find user input in two ways:
             # 1. Using the user access token from cookie
@@ -81,7 +81,7 @@ class SurveyMatchFollowing(http.Controller):
             
             if not question:
                 _logger.error(f"Question not found: {question_id}")
-                return []
+                return {'error': 'Question not found'}
                 
             # Get the answer value from params - IMPORTANT CHANGE: Accept object directly
             value_match_following = None
@@ -125,16 +125,37 @@ class SurveyMatchFollowing(http.Controller):
                 })
                 _logger.info(f"Created new answer for question {question.id}")
             
-            # Return the exact format expected by Odoo's survey engine
-            # This MUST be an array/list of objects with id and value properties
-            return [{
-                'id': question.id,
-                'value': value_match_following
-            }]
+            # Get the next question
+            next_question = self._get_next_question(survey, question)
+            
+            # Important: Return data compatible with Odoo 17's survey module
+            # This must include the next_question_id for proper navigation
+            return {
+                'success': True,
+                'question': {
+                    'id': question.id,
+                    'value': value_match_following
+                },
+                'next_question_id': next_question.id if next_question else False
+            }
             
         except Exception as e:
             _logger.exception(f"Error in match following submission: {str(e)}")
-            return []
+            return {'error': str(e)}
+    
+    def _get_next_question(self, survey, current_question):
+        """Get the next question in the survey sequence"""
+        try:
+            # Find the next question in sequence
+            next_question = request.env['survey.question'].sudo().search([
+                ('survey_id', '=', survey.id),
+                ('sequence', '>', current_question.sequence)
+            ], order='sequence asc', limit=1)
+            
+            return next_question
+        except Exception as e:
+            _logger.exception(f"Error finding next question: {str(e)}")
+            return False
 
     @http.route(['/survey/match_following/create_test'], type='http', auth='user', website=True)
     def create_match_following_test(self, **kw):
