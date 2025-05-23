@@ -83,6 +83,8 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         
         // Update the hidden input with the matches
         const questionId = this.$el.data('question-id');
+        if (!questionId) return;
+        
         const inputName = 'question_' + questionId;
         this.$(`input[name="${inputName}"]`).val(JSON.stringify(matches));
     }

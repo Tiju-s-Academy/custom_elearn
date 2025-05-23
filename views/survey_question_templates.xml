@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Template for the match following question -->
+    <!-- Define the match following question template -->
     <template id="question_match_following" name="Match Following Question">
         <div class="o_survey_match_following_wrapper" t-att-data-question-id="question.id">
             <div class="row">
@@ -8,10 +8,19 @@
                     <div class="card mb-3">
                         <div class="card-header bg-light">Items</div>
                         <div class="o_match_questions card-body p-2">
-                            <t t-foreach="question.match_following_pairs" t-as="pair">
-                                <div class="o_match_item mb-2 p-2 border rounded bg-white" 
-                                     t-att-data-pair-id="pair.id">
-                                    <t t-esc="pair.left_option"/>
+                            <!-- Only try to iterate if match_following_pairs exists and is not empty -->
+                            <t t-if="question.match_following_pairs">
+                                <t t-foreach="question.match_following_pairs" t-as="pair">
+                                    <div class="o_match_item mb-2 p-2 border rounded bg-white" 
+                                         t-att-data-pair-id="pair.id">
+                                        <t t-esc="pair.left_option"/>
+                                    </div>
+                                </t>
+                            </t>
+                            <!-- Fallback if no pairs exist -->
+                            <t t-else="">
+                                <div class="alert alert-info">
+                                    No matching pairs defined for this question.
                                 </div>
                             </t>
                         </div>
@@ -21,11 +30,14 @@
                     <div class="card mb-3">
                         <div class="card-header bg-light">Match With</div>
                         <div class="o_match_answers card-body p-2">
-                            <t t-foreach="question.match_following_pairs" t-as="pair">
-                                <div class="o_match_item mb-2 p-2 border rounded bg-white" 
-                                     t-att-data-pair-id="pair.id">
-                                    <t t-esc="pair.right_option"/>
-                                </div>
+                            <!-- Only try to iterate if match_following_pairs exists and is not empty -->
+                            <t t-if="question.match_following_pairs">
+                                <t t-foreach="question.match_following_pairs" t-as="pair">
+                                    <div class="o_match_item mb-2 p-2 border rounded bg-white" 
+                                         t-att-data-pair-id="pair.id">
+                                        <t t-esc="pair.right_option"/>
+                                    </div>
+                                </t>
                             </t>
                         </div>
                     </div>
@@ -35,32 +47,15 @@
                 <em>Drag items from left to match with items on right</em>
             </div>
             <input type="hidden" t-att-name="'question_%s' % question.id" value="[]"/>
-            <style>
-                .o_match_item {
-                    transition: all 0.2s ease;
-                }
-                .o_match_questions .o_match_item {
-                    cursor: grab;
-                }
-                .o_match_item.matched {
-                    background-color: #d4edda !important;
-                    border-color: #c3e6cb !important;
-                }
-                .drop-zone-active {
-                    background-color: #e8f4ff !important;
-                    border: 2px dashed #b8daff !important;
-                }
-                .o_match_questions, .o_match_answers {
-                    min-height: 150px;
-                }
-            </style>
         </div>
     </template>
 
-    <!-- Inherit the survey question container but only if the match following pairs exist -->
+    <!-- Inherit the survey question container -->
     <template id="question_container_inherit" inherit_id="survey.question_container">
         <xpath expr="." position="inside">
-            <t t-if="question.question_type == 'match_following' and hasattr(question, 'match_following_pairs') and question.match_following_pairs">
+            <!-- Safely check if the question is match_following type -->
+            <t t-if="question.question_type == 'match_following'">
+                <!-- Call our template directly without conditions -->
                 <t t-call="custom_elearn.question_match_following"/>
             </t>
         </xpath>

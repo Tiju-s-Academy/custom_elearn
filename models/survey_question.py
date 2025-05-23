@@ -1,4 +1,4 @@
-from odoo import fields, models, api
+from odoo import api, fields, models, _
 
 
 class SurveyQuestion(models.Model):
@@ -9,50 +9,51 @@ class SurveyQuestion(models.Model):
         ondelete={'match_following': 'cascade'}
     )
 
-    # Options for match following
-    shuffle_right_options = fields.Boolean('Shuffle Right Options', default=True)
-    shuffle_left_options = fields.Boolean('Shuffle Left Options', default=False)
-
-    # Field for match following pairs
     match_following_pairs = fields.One2many(
-        'survey.question.match',
-        'question_id',  # This field must exist in survey.question.match
-        string='Match Following Pairs'
+        'survey.question.match.pair',
+        'question_id',
+        string='Match Following Pairs',
+        help="Define the pairs for match following questions"
     )
 
-    def _get_match_following_score(self):
-        """Get total possible score for match following question"""
-        self.ensure_one()
-        if self.question_type != 'match_following':
-            return 0
-        return sum(pair.score for pair in self.match_following_pairs)
+    # Add default match pairs when creating a match following question
+    @api.model_create_multi
+    def create(self, vals_list):
+        questions = super(SurveyQuestion, self).create(vals_list)
+        for question in questions:
+            if question.question_type == 'match_following' and not question.match_following_pairs:
+                # Create some sample pairs
+                self.env['survey.question.match.pair'].create([{
+                    'question_id': question.id,
+                    'sequence': 1,
+                    'left_option': 'Apple',
+                    'right_option': 'Fruit'
+                }, {
+                    'question_id': question.id,
+                    'sequence': 2,
+                    'left_option': 'Dog',
+                    'right_option': 'Animal'
+                }, {
+                    'question_id': question.id,
+                    'sequence': 3,
+                    'left_option': 'Car',
+                    'right_option': 'Vehicle'
+                }])
+        return questions
 
-    def _prepare_result_data(self, user_input_lines, answer_count, scored_only):
-        result = super(SurveyQuestion, self)._prepare_result_data(user_input_lines, answer_count, scored_only)
 
-        if self.question_type == 'match_following':
-            result['match_following_data'] = {
-                'pairs': [(p.id, p.left_option, p.right_option) for p in self.match_following_pairs],
-                'total_score': self._get_match_following_score()
-            }
-
-        return result
-
-
-class SurveyQuestionMatch(models.Model):
-    _name = 'survey.question.match'
-    _description = 'Survey Question Match Following Pairs'
-    _rec_name = 'left_option'
+class SurveyQuestionMatchPair(models.Model):
+    _name = 'survey.question.match.pair'
+    _description = 'Survey Question Match Pair'
     _order = 'sequence, id'
 
-    sequence = fields.Integer('Sequence', default=10)
-    # This field must exist as it's referenced by match_following_pairs in SurveyQuestion
     question_id = fields.Many2one(
         'survey.question',
         string='Question',
         required=True,
         ondelete='cascade'
     )
+    sequence = fields.Integer(default=10)
     left_option = fields.Char('Left Option', required=True, translate=True)
     right_option = fields.Char('Right Option', required=True, translate=True)
     score = fields.Float('Score', default=1.0)
