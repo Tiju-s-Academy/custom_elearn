@@ -220,3 +220,48 @@ class SurveyMatchFollowing(http.Controller):
                 'status_code': 500,
                 'status_message': "Error creating test survey"
             })
+    
+    @http.route(['/survey/match_following/js'], type='http', auth='public')
+    def get_match_following_js(self, **kw):
+        """Serve the match following JavaScript directly"""
+        return """
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Match Following: Initializing");
+            
+            // Basic initialization code
+            var matchFollowing = {
+                init: function() {
+                    // Find match following questions
+                    var questions = document.querySelectorAll('.js_question-wrapper');
+                    
+                    for (var i = 0; i < questions.length; i++) {
+                        var question = questions[i];
+                        var questionType = question.getAttribute('data-question-type');
+                        
+                        if (questionType === 'match_following') {
+                            console.log("Match Following: Found match following question");
+                            this.setupQuestion(question);
+                        }
+                    }
+                },
+                
+                setupQuestion: function(question) {
+                    // Create container if not exists
+                    if (!question.querySelector('.match_following_container')) {
+                        var container = document.createElement('div');
+                        container.className = 'match_following_container';
+                        container.innerHTML = '<p>Match Following Question</p>';
+                        question.appendChild(container);
+                    }
+                    
+                    // Add basic styles
+                    var style = document.createElement('style');
+                    style.textContent = '.match_following_container { padding: 10px; background-color: #f8f9fa; border-radius: 4px; }';
+                    document.head.appendChild(style);
+                }
+            };
+            
+            // Initialize
+            matchFollowing.init();
+        });
+        """, {'Content-Type': 'text/javascript'}

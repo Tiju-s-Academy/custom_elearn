@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Change to inherit from web.assets_frontend which is guaranteed to exist -->
-    <template id="assets_frontend" inherit_id="web.assets_frontend" name="Survey Match Following Frontend Assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
-        </xpath>
+    <!-- Define our template without inheritance -->
+    <template id="match_following_assets" name="Match Following Assets">
+        <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
     </template>
     
-    <!-- Also inject our script directly into the survey layout to be sure -->
-    <template id="survey_layout_assets" inherit_id="survey.layout" name="Survey Match Following Layout Assets">
-        <xpath expr="//head" position="inside">
-            <script type="text/javascript">
-                // Simple initialization script
-                document.addEventListener('DOMContentLoaded', function() {
-                    console.log("Survey Match Following: Ready");
-                });
-            </script>
-        </xpath>
+    <!-- Create a direct template for match following questions -->
+    <template id="match_following_question_content" name="Survey: Match Following Question">
+        <div class="match_following_container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="match_items_left">
+                        <!-- Items will be inserted here by JavaScript -->
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Match With</h5>
+                    <div class="match_items_right">
+                        <!-- Items will be inserted here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted mt-2">Drag items from left to match with items on the right.</p>
+        </div>
     </template>
 </odoo>
