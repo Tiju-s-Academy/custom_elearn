@@ -85,67 +85,49 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         const questionId = this.$el.data('question-id');
         const inputName = 'question_' + questionId;
         this.$(`input[name="${inputName}"]`).val(JSON.stringify(matches));
-        
-        // Submit the matches to the server
-        this._submitMatches(matches);
-    },
-    
-    _submitMatches: function(matches) {
-        // Get the question ID and survey token
-        const questionId = this.$el.data('question-id');
-        const surveyToken = this._getSurveyToken();
-        
-        if (!questionId || !surveyToken) {
-            console.log('Match Following: Missing question ID or survey token');
-            return;
-        }
-        
-        // Debug output
-        console.log(`Submitting matches to server: questionId=${questionId}, token=${surveyToken}`, matches);
-        
-        // Submit to server using Odoo's RPC mechanism
-        this._rpc({
-            route: `/survey/submit/${surveyToken}/${questionId}`,
-            params: {
-                value_match_following: matches
-            }
-        }).then(function(result) {
-            console.log('Match Following: Submission successful', result);
-        }).guardedCatch(function(error) {
-            console.error('Match Following: Submission failed', error);
-        });
-    },
-    
-    _getSurveyToken: function() {
-        // First try to get from form action
-        const $form = $('.o_survey_form');
-        if ($form.length) {
-            const actionUrl = $form.attr('action');
-            if (actionUrl) {
-                const actionMatch = actionUrl.match(/\/survey\/([^\/]+)/);
-                if (actionMatch && actionMatch[1]) {
-                    return actionMatch[1];
-                }
-            }
-        }
-        
-        // Try from URL
-        const url = window.location.href;
-        const urlMatch = url.match(/\/survey\/([^\/]+)/) || 
-                         url.match(/\/begin\/([^\/]+)/);
-        if (urlMatch && urlMatch[1]) {
-            return urlMatch[1];
-        }
-        
-        // Try from input field
-        const $tokenInput = $('input[name="token"]');
-        if ($tokenInput.length) {
-            return $tokenInput.val();
-        }
-        
-        return null;
     }
 });
+
+// Patch the SurveyFormWidget to handle match following questions properly
+import { patch } from "@web/core/utils/patch";
+const formWidgetsRegistry = require("@web/legacy/js/public/public_widget_registry");
+const SurveyFormWidget = formWidgetsRegistry.get("survey_form");
+
+if (SurveyFormWidget) {
+    patch(SurveyFormWidget.prototype, 'custom_elearn.SurveyFormWidgetPatch', {
+        _submitForm: function () {
+            // Before submitting the form, make sure all match following answers are processed
+            const matchFollowing = $('.o_survey_match_following_wrapper').map(function() {
+                const widget = $(this).data('widget');
+                if (widget && widget._updateMatches) {
+                    widget._updateMatches();
+                }
+            });
+            
+            // Call the original method
+            return this._super.apply(this, arguments);
+        },
+        
+        _onNextScreenDone: function (result) {
+            // Make the original method more robust
+            try {
+                // If there's no result or result is not iterable, provide a default
+                if (!result || typeof result[Symbol.iterator] !== 'function') {
+                    console.warn("Survey received invalid result format, using default");
+                    result = [];
+                }
+                
+                // Call the original method with the sanitized result
+                return this._super.apply(this, arguments);
+            } catch (error) {
+                console.error("Error in _onNextScreenDone:", error);
+                // Provide fallback behavior - go to next question if possible
+                this.trigger_up('reload');
+                return Promise.resolve();
+            }
+        }
+    });
+}
 
 export default {
     SurveyMatchFollowing: publicWidget.registry.SurveyMatchFollowing

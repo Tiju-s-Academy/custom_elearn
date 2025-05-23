@@ -57,10 +57,12 @@
         </div>
     </template>
 
-    <!-- Inherit the survey question container -->
+    <!-- Inherit the survey question container but only if the match following pairs exist -->
     <template id="question_container_inherit" inherit_id="survey.question_container">
         <xpath expr="." position="inside">
-            <t t-if="question.question_type == 'match_following'" t-call="custom_elearn.question_match_following"/>
+            <t t-if="question.question_type == 'match_following' and hasattr(question, 'match_following_pairs') and question.match_following_pairs">
+                <t t-call="custom_elearn.question_match_following"/>
+            </t>
         </xpath>
     </template>
 </odoo>
