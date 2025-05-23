@@ -323,282 +323,254 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
 });
 
 /**
- * Match Following Questions for Odoo Surveys
- * Simple implementation focusing on reliability
+ * Simple Match Following implementation for Odoo surveys
+ * Uses vanilla JS for maximum compatibility
  */
 (function() {
     'use strict';
     
-    // Initialize when the DOM is ready
+    // Initialize when document is fully loaded
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("Match Following: Ready to initialize");
-        // Use setTimeout to ensure Odoo's JS has loaded
-        setTimeout(initMatchFollowing, 1000);
+        console.log("Match Following: Document ready");
+        // Use a timeout to ensure Odoo's JS is fully loaded
+        setTimeout(initialize, 1000);
     });
     
-    // Main initialization function
-    function initMatchFollowing() {
-        try {
-            console.log("Match Following: Initializing");
-            
-            // Add debug button to check if JS is working
-            addDebugButton();
-            
-            // Find match following questions
-            findAndProcessQuestions();
-            
-        } catch (e) {
-            console.error("Match Following Error:", e);
-        }
-    }
-    
-    // Find and process match following questions
-    function findAndProcessQuestions() {
-        // Select possible question containers
-        var questionWrappers = document.querySelectorAll('.js_question-wrapper, .o_survey_form_content .js_question');
+    /**
+     * Main initialization function
+     */
+    function initialize() {
+        console.log("Match Following: Initializing");
         
+        // Check whether this page contains a survey form
+        if (!document.querySelector('.o_survey_form')) {
+            console.log("Match Following: No survey form found on this page");
+            return;
+        }
+        
+        // Find question containers
+        var questionWrappers = document.querySelectorAll('.js_question-wrapper');
         console.log("Match Following: Found " + questionWrappers.length + " question wrappers");
         
-        // Process each question wrapper
+        // Process each question
         for (var i = 0; i < questionWrappers.length; i++) {
-            var wrapper = questionWrappers[i];
-            
-            // Check if this is a match following question
-            if (isMatchFollowingQuestion(wrapper)) {
-                console.log("Match Following: Found match following question");
-                processMatchFollowingQuestion(wrapper);
+            processQuestion(questionWrappers[i]);
+        }
+    }
+    
+    /**
+     * Process a question wrapper to check if it's a match following question
+     */
+    function processQuestion(wrapper) {
+        // Skip if already processed
+        if (wrapper.getAttribute('data-match-following-processed')) {
+            return;
+        }
+        
+        // Check question type
+        var questionType = '';
+        var typeInput = wrapper.querySelector('input[name="question_type"]');
+        if (typeInput) {
+            questionType = typeInput.value;
+        }
+        
+        if (questionType === 'match_following') {
+            console.log("Match Following: Found match following question");
+            createMatchFollowingUI(wrapper);
+            // Mark as processed
+            wrapper.setAttribute('data-match-following-processed', 'true');
+        }
+    }
+    
+    /**
+     * Create match following UI for a question
+     */
+    function createMatchFollowingUI(wrapper) {
+        // Get question ID
+        var questionId = '';
+        var inputs = wrapper.querySelectorAll('input[name^="question_"]');
+        if (inputs.length > 0) {
+            var nameMatch = inputs[0].name.match(/question_(\d+)/);
+            if (nameMatch && nameMatch[1]) {
+                questionId = nameMatch[1];
             }
         }
-    }
-    
-    // Check if a wrapper contains a match following question
-    function isMatchFollowingQuestion(wrapper) {
-        // Check data attribute
-        if (wrapper.getAttribute('data-question-type') === 'match_following') {
-            return true;
-        }
         
-        // Check hidden input
-        var typeInput = wrapper.querySelector('input[name="question_type"]');
-        return typeInput && typeInput.value === 'match_following';
-    }
-    
-    // Process a match following question
-    function processMatchFollowingQuestion(wrapper) {
-        // Skip if already processed
-        if (wrapper.querySelector('.match_following_container')) {
-            return;
-        }
-        
-        // Get question ID
-        var questionId = getQuestionId(wrapper);
         if (!questionId) {
-            console.error("Match Following: Could not determine question ID");
+            console.error("Match Following: Couldn't determine question ID");
             return;
         }
         
-        console.log("Match Following: Processing question " + questionId);
+        console.log("Match Following: Creating UI for question " + questionId);
         
-        // Create match following UI
-        createMatchFollowingUI(wrapper, questionId);
-    }
-    
-    // Create the match following UI
-    function createMatchFollowingUI(wrapper, questionId) {
         // Create container
         var container = document.createElement('div');
         container.className = 'match_following_container';
         container.setAttribute('data-question-id', questionId);
         
-        // Create basic structure
-        container.innerHTML = `
+        // Create HTML structure
+        var html = `
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
-                    <div class="match_left_items"></div>
+                    <div class="match_left_items bg-light border rounded p-2 mb-2" style="min-height:150px;"></div>
                 </div>
                 <div class="col-md-6">
                     <h5>Match With</h5>
-                    <div class="match_right_items"></div>
+                    <div class="match_right_items bg-light border rounded p-2 mb-2" style="min-height:150px;"></div>
                 </div>
             </div>
-            <p class="text-muted mt-2 small">Drag items from left column to match with right column.</p>
+            <div class="match_status text-muted small mt-2">
+                Drag items from left to match with items on the right.
+            </div>
         `;
         
-        // Style the container
-        container.style.padding = '15px';
-        container.style.backgroundColor = '#f8f9fa';
-        container.style.borderRadius = '4px';
-        container.style.marginTop = '15px';
+        container.innerHTML = html;
         
-        // Add to wrapper
+        // Add to the wrapper
         wrapper.appendChild(container);
         
-        // Add sample pairs
-        addSamplePairs(container);
+        // Add test items
+        addTestItems(container);
         
         // Setup drag and drop
-        setupDragAndDrop(container);
+        setupDragDrop(container);
     }
     
-    // Add sample pairs for testing
-    function addSamplePairs(container) {
+    /**
+     * Add test items to the match following container
+     */
+    function addTestItems(container) {
         var questionId = container.getAttribute('data-question-id');
-        var pairs = [
+        var leftContainer = container.querySelector('.match_left_items');
+        var rightContainer = container.querySelector('.match_right_items');
+        
+        var items = [
             { id: 'pair1_' + questionId, left: 'Apple', right: 'Fruit' },
             { id: 'pair2_' + questionId, left: 'Dog', right: 'Animal' },
             { id: 'pair3_' + questionId, left: 'Car', right: 'Vehicle' }
         ];
         
-        var leftContainer = container.querySelector('.match_left_items');
-        var rightContainer = container.querySelector('.match_right_items');
-        
-        if (!leftContainer || !rightContainer) return;
-        
-        // Style containers
-        [leftContainer, rightContainer].forEach(function(elem) {
-            elem.style.minHeight = '150px';
-            elem.style.padding = '10px';
-            elem.style.border = '1px dashed #ccc';
-            elem.style.borderRadius = '4px';
-            elem.style.backgroundColor = '#fff';
-            elem.style.marginBottom = '10px';
+        // Create left items
+        items.forEach(function(item) {
+            var leftItem = document.createElement('div');
+            leftItem.className = 'match_item bg-white border rounded p-2 mb-2';
+            leftItem.setAttribute('draggable', 'true');
+            leftItem.setAttribute('data-pair-id', item.id);
+            leftItem.textContent = item.left;
+            leftContainer.appendChild(leftItem);
         });
         
-        // Add items
-        for (var i = 0; i < pairs.length; i++) {
-            var pair = pairs[i];
-            
-            // Left item
-            var leftItem = document.createElement('div');
-            leftItem.className = 'match_item';
-            leftItem.setAttribute('draggable', 'true');
-            leftItem.setAttribute('data-pair-id', pair.id);
-            leftItem.textContent = pair.left;
-            styleMatchItem(leftItem);
-            leftContainer.appendChild(leftItem);
-            
-            // Right item
+        // Create right items (shuffled)
+        shuffle(items).forEach(function(item) {
             var rightItem = document.createElement('div');
-            rightItem.className = 'match_item';
-            rightItem.setAttribute('data-pair-id', pair.id);
-            rightItem.textContent = pair.right;
-            styleMatchItem(rightItem);
+            rightItem.className = 'match_item bg-white border rounded p-2 mb-2';
+            rightItem.setAttribute('data-pair-id', item.id);
+            rightItem.textContent = item.right;
             rightContainer.appendChild(rightItem);
-        }
+        });
     }
     
-    // Style a match item
-    function styleMatchItem(item) {
-        item.style.padding = '10px';
-        item.style.margin = '5px 0';
-        item.style.backgroundColor = '#fff';
-        item.style.border = '1px solid #ddd';
-        item.style.borderRadius = '4px';
-        item.style.cursor = item.hasAttribute('draggable') ? 'grab' : 'default';
-    }
-    
-    // Setup drag and drop functionality
-    function setupDragAndDrop(container) {
-        // Set up draggable items
-        var items = container.querySelectorAll('[draggable="true"]');
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            
-            // Drag start
+    /**
+     * Set up drag and drop functionality
+     */
+    function setupDragDrop(container) {
+        // Get draggable items
+        var dragItems = container.querySelectorAll('.match_left_items .match_item');
+        
+        // Set up drag events
+        dragItems.forEach(function(item) {
             item.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
+                this.classList.add('dragging');
                 this.style.opacity = '0.5';
             });
             
-            // Drag end
             item.addEventListener('dragend', function() {
-                this.style.opacity = '1';
+                this.classList.remove('dragging');
+                this.style.opacity = '';
             });
-        }
+        });
         
         // Set up drop targets
-        var rightItems = container.querySelectorAll('.match_right_items .match_item');
-        for (var j = 0; j < rightItems.length; j++) {
-            var target = rightItems[j];
-            
-            // Drag over
+        var dropTargets = container.querySelectorAll('.match_right_items .match_item');
+        
+        dropTargets.forEach(function(target) {
             target.addEventListener('dragover', function(e) {
                 e.preventDefault();
+                this.classList.add('drag-over');
                 this.style.backgroundColor = '#e8f4ff';
-                this.style.borderColor = '#b8daff';
             });
             
-            // Drag leave
             target.addEventListener('dragleave', function() {
-                this.style.backgroundColor = '#fff';
-                this.style.borderColor = '#ddd';
+                this.classList.remove('drag-over');
+                this.style.backgroundColor = '';
             });
             
-            // Drop
             target.addEventListener('drop', function(e) {
                 e.preventDefault();
-                this.style.backgroundColor = '#fff';
-                this.style.borderColor = '#ddd';
+                this.classList.remove('drag-over');
+                this.style.backgroundColor = '';
                 
                 var pairId = e.dataTransfer.getData('text/plain');
-                if (!pairId) return;
                 
-                // Check if correct match
+                // Check if this is the correct match
                 if (this.getAttribute('data-pair-id') === pairId) {
-                    // Correct match
+                    // Mark as matched
+                    this.classList.add('matched');
                     this.style.backgroundColor = '#d4edda';
-                    this.style.borderColor = '#c3e6cb';
                     
                     // Find and mark left item
-                    var leftItem = container.querySelector('.match_left_items .match_item[data-pair-id="' + pairId + '"]');
+                    var leftItem = container.querySelector(`.match_left_items .match_item[data-pair-id="${pairId}"]`);
                     if (leftItem) {
+                        leftItem.classList.add('matched');
                         leftItem.style.backgroundColor = '#d4edda';
-                        leftItem.style.borderColor = '#c3e6cb';
                         leftItem.setAttribute('data-matched', 'true');
                     }
                     
-                    // Save match
+                    // Save matches
                     saveMatches(container);
                 } else {
-                    // Wrong match - show error feedback briefly
+                    // Wrong match
+                    this.classList.add('wrong-match');
                     this.style.backgroundColor = '#f8d7da';
-                    this.style.borderColor = '#f5c6cb';
+                    
+                    // Reset after a moment
                     var self = this;
                     setTimeout(function() {
-                        self.style.backgroundColor = '#fff';
-                        self.style.borderColor = '#ddd';
+                        self.classList.remove('wrong-match');
+                        self.style.backgroundColor = '';
                     }, 1000);
                 }
             });
-        }
+        });
     }
     
-    // Save matches to server
+    /**
+     * Save match data to the server
+     */
     function saveMatches(container) {
+        // Get question ID
         var questionId = container.getAttribute('data-question-id');
         if (!questionId) return;
         
         // Get survey token
         var surveyToken = getSurveyToken();
-        if (!surveyToken) {
-            console.error("Match Following: Could not determine survey token");
-            return;
-        }
+        if (!surveyToken) return;
         
-        // Collect matches
+        // Get matched items
         var matches = [];
         var matchedItems = container.querySelectorAll('.match_left_items .match_item[data-matched="true"]');
-        for (var i = 0; i < matchedItems.length; i++) {
-            var item = matchedItems[i];
+        
+        matchedItems.forEach(function(item) {
             matches.push({
                 pair_id: item.getAttribute('data-pair-id'),
                 matched: true
             });
-        }
+        });
         
-        console.log("Match Following: Saving matches for question " + questionId);
-        console.log("Match Following: Matches:", matches);
+        // Update status
+        updateMatchStatus(container, matches);
         
         // Send to server
         var xhr = new XMLHttpRequest();
@@ -608,74 +580,65 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    console.log("Match Following: Submission successful");
+                    console.log("Match Following: Saved successfully");
                 } else {
-                    console.error("Match Following: Submission failed:", xhr.status);
+                    console.error("Match Following: Error saving matches");
                 }
             }
         };
         
-        // Format data exactly as expected
         var data = {
             jsonrpc: "2.0",
             method: "call",
             params: {
                 value_match_following: matches
             },
-            id: Date.now()
+            id: new Date().getTime()
         };
         
+        console.log("Match Following: Sending data:", data);
         xhr.send(JSON.stringify(data));
     }
     
-    // Get question ID from wrapper
-    function getQuestionId(wrapper) {
-        // Try data attribute
-        var id = wrapper.getAttribute('data-question-id');
+    /**
+     * Update match status display
+     */
+    function updateMatchStatus(container, matches) {
+        var statusElem = container.querySelector('.match_status');
+        if (!statusElem) return;
         
-        // Try input name
-        if (!id) {
-            var inputs = wrapper.querySelectorAll('input[name^="question_"]');
-            for (var i = 0; i < inputs.length; i++) {
-                var match = inputs[i].name.match(/question_(\d+)/);
-                if (match && match[1]) {
-                    id = match[1];
-                    break;
-                }
-            }
+        var total = container.querySelectorAll('.match_left_items .match_item').length;
+        var matched = matches.length;
+        
+        if (matched === total) {
+            statusElem.innerHTML = '<div class="alert alert-success py-1 px-2">All items matched correctly!</div>';
+        } else {
+            statusElem.textContent = matched + ' of ' + total + ' items matched';
         }
-        
-        return id;
     }
     
-    // Get survey token from URL
+    /**
+     * Get survey token from URL
+     */
     function getSurveyToken() {
         var url = window.location.href;
         var match = url.match(/\/survey\/([^\/]+)/) || 
-                   url.match(/\/begin\/([^\/]+)/) || 
-                   url.match(/\/session\/([^\/]+)/);
+                    url.match(/\/begin\/([^\/]+)/);
+                    
         return match ? match[1] : null;
     }
     
-    // Add debug button to verify JS is working
-    function addDebugButton() {
-        try {
-            // Find a good place to add the button
-            var target = document.querySelector('.o_survey_form_content');
-            if (!target) return;
-            
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'btn btn-sm btn-secondary mt-3';
-            btn.style.display = 'none'; // Hidden by default
-            btn.textContent = 'Match Following Debug';
-            btn.onclick = function() {
-                alert('Match Following JS is working');
-            };
-            
-            target.appendChild(btn);
-        } catch (e) {
-            console.error("Error adding debug button:", e);
+    /**
+     * Shuffle an array
+     */
+    function shuffle(array) {
+        var result = array.slice();
+        for (var i = result.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = result[i];
+            result[i] = result[j];
+            result[j] = temp;
         }
+        return result;
     }
 })();

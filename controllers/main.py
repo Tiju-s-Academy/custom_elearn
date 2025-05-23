@@ -24,31 +24,129 @@ class SurveyMatchFollowing(http.Controller):
             
             if not survey:
                 _logger.error(f"Survey not found with token: {survey_token}")
-                return []
+                return {'error': 'Survey not found'}
                 
-            # Find or create user input
-            user_input = self._find_or_create_user_input(survey, user_access_token)
+            # Find user input in two ways:
+            # 1. Using the user access token from cookie
+            user_input = False
+            if user_access_token:
+                user_input = request.env['survey.user_input'].sudo().search([
+                    ('survey_id', '=', survey.id),
+                    ('access_token', '=', user_access_token)
+                ], limit=1)
+            
+            # 2. If not found, try using the survey token
             if not user_input:
-                return []
+                user_input = request.env['survey.user_input'].sudo().search([
+                    ('survey_id', '=', survey.id),
+                    ('access_token', '=', survey_token)
+                ], limit=1)
+            
+            # 3. Last resort - find most recent user input for this survey
+            if not user_input:
+                user_input = request.env['survey.user_input'].sudo().search([
+                    ('survey_id', '=', survey.id),
+                    ('state', 'in', ['new', 'in_progress'])
+                ], limit=1, order="create_date DESC")
+            
+            if not user_input:
+                # If still not found, create a new session
+                _logger.warning(f"No existing session found, creating new one for survey {survey.id}")
+                user_input = request.env['survey.user_input'].sudo().create({
+                    'survey_id': survey.id,
+                    'partner_id': request.env.user.partner_id.id if not request.env.user._is_public() else False,
+                    'state': 'in_progress',
+                })
+            
+            _logger.info(f"Found/Created user_input (session) with ID: {user_input.id}, state: {user_input.state}")
             
             # Find question
-            question = self._find_question(survey, question_id)
+            question = None
+            if question_id.isdigit():
+                question = request.env['survey.question'].sudo().browse(int(question_id))
+                if not question.exists() or question.survey_id.id != survey.id:
+                    question = None
+            
+            # If not found by ID, try other methods
             if not question:
-                return []
-            
-            # Process match following data
-            value_match_following = self._extract_match_data(post)
-            if not value_match_following:
-                _logger.warning("No match following data provided")
+                questions = request.env['survey.question'].sudo().search([
+                    ('survey_id', '=', survey.id),
+                    ('question_type', '=', 'match_following')
+                ])
                 
-            # Save answer
+                if questions:
+                    # Use the first match following question found
+                    question = questions[0]
+                    _logger.info(f"Using default match following question: {question.id}")
+            
+            if not question:
+                _logger.error(f"Question not found: {question_id}")
+                return {'error': 'Question not found'}
+                
+            # Get the match following data
+            value_match_following = None
+            
+            # Get data from params
+            if post and 'params' in post:
+                params = post.get('params', {})
+                value_match_following = params.get('value_match_following')
+            
+            # Handle value format
+            if isinstance(value_match_following, list):
+                # Already a list, use as is
+                _logger.info(f"Found match following data as list")
+            elif isinstance(value_match_following, str):
+                # Parse JSON string
+                try:
+                    value_match_following = json.loads(value_match_following)
+                    _logger.info(f"Parsed match following data from string")
+                except (json.JSONDecodeError, TypeError):
+                    _logger.warning("Invalid JSON format for match following data")
+                    value_match_following = []
+            else:
+                _logger.warning("No match following data provided")
+                value_match_following = []
+                
+            _logger.info(f"Match following data: {value_match_following}")
+            
+            # Convert to string for database storage
             value_match_following_str = json.dumps(value_match_following)
-            self._save_answer(user_input, question, value_match_following_str)
             
-            # Find next question if any
-            next_question = self._find_next_question(survey, question)
+            # Create or update user input line
+            user_input_line = request.env['survey.user_input.line'].sudo().search([
+                ('user_input_id', '=', user_input.id),
+                ('question_id', '=', question.id)
+            ], limit=1)
             
-            # Return in the exact format expected by Odoo survey JS
+            if user_input_line:
+                # Update existing answer
+                user_input_line.sudo().write({
+                    'value_match_following': value_match_following_str,
+                    'answer_type': 'match_following'
+                })
+                _logger.info(f"Updated answer for question {question.id}")
+            else:
+                # Create new answer line
+                request.env['survey.user_input.line'].sudo().create({
+                    'user_input_id': user_input.id,
+                    'question_id': question.id,
+                    'value_match_following': value_match_following_str,
+                    'answer_type': 'match_following'
+                })
+                _logger.info(f"Created new answer for question {question.id}")
+            
+            # Find next question
+            next_question = False
+            next_questions = request.env['survey.question'].sudo().search([
+                ('survey_id', '=', survey.id),
+                ('sequence', '>', question.sequence)
+            ], order="sequence", limit=1)
+            
+            if next_questions:
+                next_question = next_questions[0].id
+            
+            # Return in the format expected by Odoo's survey engine
+            # This must be an ARRAY, not an object!
             return [{
                 'id': question.id,
                 'value': value_match_following
@@ -56,107 +154,8 @@ class SurveyMatchFollowing(http.Controller):
             
         except Exception as e:
             _logger.exception(f"Error in match following submission: {str(e)}")
+            # Return empty array instead of error object to prevent iteration error
             return []
-    
-    def _find_or_create_user_input(self, survey, user_access_token):
-        # Find by user access token
-        user_input = False
-        if user_access_token:
-            user_input = request.env['survey.user_input'].sudo().search([
-                ('survey_id', '=', survey.id),
-                ('access_token', '=', user_access_token)
-            ], limit=1)
-        
-        # Find by survey token
-        if not user_input:
-            user_input = request.env['survey.user_input'].sudo().search([
-                ('survey_id', '=', survey.id),
-                ('state', 'in', ['new', 'in_progress'])
-            ], limit=1, order="create_date DESC")
-        
-        # Create new if needed
-        if not user_input:
-            _logger.info(f"Creating new user input for survey {survey.id}")
-            user_input = request.env['survey.user_input'].sudo().create({
-                'survey_id': survey.id,
-                'state': 'in_progress',
-            })
-        
-        _logger.info(f"Found/Created user_input (session) with ID: {user_input.id}, state: {user_input.state}")
-        return user_input
-    
-    def _find_question(self, survey, question_id):
-        # Try to find by direct ID
-        question = None
-        if question_id.isdigit():
-            question = request.env['survey.question'].sudo().browse(int(question_id))
-            if not question.exists() or question.survey_id.id != survey.id:
-                question = None
-        
-        # Try to find match following question as fallback
-        if not question:
-            questions = request.env['survey.question'].sudo().search([
-                ('survey_id', '=', survey.id),
-                ('question_type', '=', 'match_following')
-            ], limit=1)
-            
-            if questions:
-                question = questions[0]
-                _logger.info(f"Using default match following question: {question.id}")
-        
-        if not question:
-            _logger.error(f"Question not found: {question_id}")
-        
-        return question
-    
-    def _extract_match_data(self, post):
-        # Extract match following data from post
-        value_match_following = []
-        
-        if post and 'params' in post:
-            params = post.get('params', {})
-            data = params.get('value_match_following')
-            
-            if isinstance(data, list):
-                value_match_following = data
-            elif isinstance(data, str):
-                try:
-                    value_match_following = json.loads(data)
-                except json.JSONDecodeError:
-                    pass
-        
-        return value_match_following
-    
-    def _save_answer(self, user_input, question, value):
-        # Save answer to database
-        line = request.env['survey.user_input.line'].sudo().search([
-            ('user_input_id', '=', user_input.id),
-            ('question_id', '=', question.id)
-        ], limit=1)
-        
-        if line:
-            line.sudo().write({
-                'value_match_following': value,
-                'answer_type': 'match_following'
-            })
-            _logger.info(f"Updated answer for question {question.id}")
-        else:
-            request.env['survey.user_input.line'].sudo().create({
-                'user_input_id': user_input.id,
-                'question_id': question.id,
-                'value_match_following': value,
-                'answer_type': 'match_following'
-            })
-            _logger.info(f"Created new answer for question {question.id}")
-    
-    def _find_next_question(self, survey, current_question):
-        # Find next question in sequence
-        next_questions = request.env['survey.question'].sudo().search([
-            ('survey_id', '=', survey.id),
-            ('sequence', '>', current_question.sequence)
-        ], order="sequence", limit=1)
-        
-        return next_questions[0] if next_questions else False
 
     @http.route(['/survey/match_following/create_test'], type='http', auth='user', website=True)
     def create_match_following_test(self, **kw):

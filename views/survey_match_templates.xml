@@ -26,8 +26,8 @@
         </div>
     </template>
 
-    <!-- Include our JavaScript in the survey layout -->
-    <template id="survey_layout_assets" inherit_id="survey.layout">
+    <!-- Simply inject our script directly into the survey layout -->
+    <template id="survey_layout_with_match_following" inherit_id="survey.layout">
         <xpath expr="//head" position="inside">
             <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
             <style>
@@ -35,27 +35,26 @@
                 .match_following_container {
                     margin: 15px 0;
                     padding: 15px;
-                    background-color: #f8f9fa;
+                    background-color: #f9f9fa;
                     border-radius: 4px;
                 }
                 .match_left_items, .match_right_items {
                     min-height: 150px;
-                    padding: 10px;
-                    border: 1px dashed #ccc;
-                    border-radius: 4px;
                     background-color: #fff;
-                    margin-bottom: 10px;
                 }
                 .match_item {
-                    padding: 10px;
-                    margin: 5px 0;
-                    background-color: #fff;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
                     cursor: pointer;
+                    transition: all 0.2s;
                 }
                 .match_left_items .match_item {
                     cursor: grab;
+                }
+                .match_item.matched {
+                    background-color: #d4edda !important;
+                    border-color: #c3e6cb !important;
+                }
+                .match_item.dragging {
+                    opacity: 0.5;
                 }
             </style>
         </xpath>
