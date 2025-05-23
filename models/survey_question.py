@@ -8,6 +8,10 @@ class SurveyQuestion(models.Model):
         selection_add=[('match_following', 'Match Following')],
         ondelete={'match_following': 'cascade'}
     )
+    shuffle_right_options = fields.Boolean('Shuffle Right Options', default=True,
+        help="If checked, options on the right side will be shuffled for each survey session")
+    shuffle_left_options = fields.Boolean('Shuffle Left Options', default=False,
+        help="If checked, options on the left side will be shuffled for each survey session")
 
     match_following_pairs = fields.One2many(
         'survey.question.match.pair',

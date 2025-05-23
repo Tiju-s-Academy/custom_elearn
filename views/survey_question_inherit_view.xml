@@ -1,55 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Enhance the survey question form to support match following type -->
+    <!-- Inherit Survey Question Form -->
     <record id="survey_question_form_inherit" model="ir.ui.view">
         <field name="name">survey.question.form.inherit</field>
         <field name="model">survey.question</field>
         <field name="inherit_id" ref="survey.survey_question_form"/>
         <field name="arch" type="xml">
-            <!-- Add match_following option to question_type selection field -->
-            <field name="question_type" position="attributes">
-                <attribute name="options" add="{'match_following': 'Match Following'}" separator=","/>
+            <!-- Add match following to question type dropdown -->
+            <field name="question_type" position="replace">
+                <field name="question_type" widget="radio" options="{'horizontal': true}"/>
             </field>
             
-            <!-- Add match following pairs tab -->
-            <xpath expr="//page[@name='answers']" position="after">
-                <page string="Match Following Pairs" invisible="question_type != 'match_following'">
-                    <field name="match_following_pairs" context="{'default_question_id': id}">
-                        <tree editable="bottom">
-                            <field name="sequence" widget="handle"/>
-                            <field name="left_option"/>
-                            <field name="right_option"/>
-                            <field name="score"/>
-                        </tree>
-                    </field>
-                    <group>
-                        <field name="shuffle_right_options" />
-                        <field name="shuffle_left_options" />
-                    </group>
-                </page>
+            <!-- Add match following config section -->
+            <xpath expr="//div[@id='options']" position="inside">
+                <div invisible="question_type != 'match_following'" id="match_following_options">
+                    <div class="row mt16">
+                        <div class="col-lg-6">
+                            <label for="shuffle_left_options" string="Shuffle Left Options"/>
+                            <field name="shuffle_left_options"/>
+                        </div>
+                        <div class="col-lg-6">
+                            <label for="shuffle_right_options" string="Shuffle Right Options"/>
+                            <field name="shuffle_right_options"/>
+                        </div>
+                    </div>
+                    <div class="row mt16">
+                        <div class="col-lg-12">
+                            <label for="match_following_pairs" string="Match Pairs"/>
+                            <field name="match_following_pairs">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="left_option"/>
+                                    <field name="right_option"/>
+                                    <field name="score"/>
+                                </tree>
+                            </field>
+                        </div>
+                    </div>
+                </div>
             </xpath>
             
-            <!-- Add preview to question form without using Owl directives -->
-            <xpath expr="//notebook" position="before">
-                <div class="o_match_following_preview" invisible="question_type != 'match_following'">
-                    <h5>Match Following Preview</h5>
+            <!-- Add a preview tab for match following -->
+            <xpath expr="//div[@id='question_preview']" position="inside">
+                <div attrs="{'invisible': [('question_type', '!=', 'match_following')]}" class="mt16 o_preview">
                     <div class="row">
-                        <div class="col-6">
-                            <h6>Left Options</h6>
-                            <div class="match_left_preview p-2 border rounded">
-                                <!-- Use a static preview instead of t-foreach -->
-                                <div class="match_item bg-light p-2 mb-2 rounded">Left Option Preview</div>
-                                <div class="match_item bg-light p-2 mb-2 rounded">Drag items from here...</div>
+                        <div class="col-md-6">
+                            <h5>Items</h5>
+                            <div class="border p-2 rounded bg-light">
+                                <div t-foreach="5" t-as="i" class="mb-2 p-2 border rounded bg-white">
+                                    Item <t t-esc="i"/>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <h6>Right Options</h6>
-                            <div class="match_right_preview p-2 border rounded">
-                                <!-- Use a static preview instead of t-foreach -->
-                                <div class="match_item bg-light p-2 mb-2 rounded">Right Option Preview</div>
-                                <div class="match_item bg-light p-2 mb-2 rounded">...to match here</div>
+                        <div class="col-md-6">
+                            <h5>Match With</h5>
+                            <div class="border p-2 rounded bg-light">
+                                <div t-foreach="5" t-as="i" class="mb-2 p-2 border rounded bg-white">
+                                    Match <t t-esc="i"/>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <em>Drag items from left to match with items on right.</em>
                     </div>
                 </div>
             </xpath>
