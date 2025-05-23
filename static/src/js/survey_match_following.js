@@ -1,6 +1,6 @@
 /**
  * Match Following Component for Surveys
- * Vanilla JS implementation with no dependencies 
+ * Vanilla JS implementation with no module dependencies
  */
 (function() {
     'use strict';
@@ -20,6 +20,9 @@
             console.log('Match Following: Not on a survey page');
             return;
         }
+        
+        // Add CSS styles
+        addStyles();
         
         // Process all match following containers
         var containers = document.querySelectorAll('.o_survey_match_following_wrapper');
@@ -43,7 +46,11 @@
         console.log('Match Following: Processing container');
         
         // Get question ID
-        var questionId = container.querySelector('.o_match_questions').getAttribute('data-question-id');
+        var questionId = container.getAttribute('data-question-id');
+        if (!questionId) {
+            console.error('Match Following: No question ID found on container');
+            return;
+        }
         
         // Add sample items (in a real implementation, these would come from the server)
         addSampleItems(container, questionId);
@@ -57,10 +64,13 @@
     
     // Add sample items to container
     function addSampleItems(container, questionId) {
-        var leftContainer = container.querySelector('.left-items');
-        var rightContainer = container.querySelector('.right-items');
+        var leftContainer = container.querySelector('.o_match_questions');
+        var rightContainer = container.querySelector('.o_match_answers');
         
-        if (!leftContainer || !rightContainer) return;
+        if (!leftContainer || !rightContainer) {
+            console.error('Match Following: Could not find question or answer containers');
+            return;
+        }
         
         // Sample items
         var pairs = [
@@ -72,7 +82,7 @@
         // Add left items
         pairs.forEach(function(pair) {
             var item = document.createElement('div');
-            item.className = 'match-item mb-2 p-2 border rounded bg-white';
+            item.className = 'o_match_item mb-2 p-2 border rounded bg-white';
             item.setAttribute('draggable', 'true');
             item.setAttribute('data-pair-id', pair.id);
             item.textContent = pair.left;
@@ -82,7 +92,7 @@
         // Add right items (shuffled)
         shuffle(pairs).forEach(function(pair) {
             var item = document.createElement('div');
-            item.className = 'match-item mb-2 p-2 border rounded bg-white';
+            item.className = 'o_match_item mb-2 p-2 border rounded bg-white';
             item.setAttribute('data-pair-id', pair.id);
             item.textContent = pair.right;
             rightContainer.appendChild(item);
@@ -92,7 +102,7 @@
     // Setup drag and drop functionality
     function setupDragAndDrop(container) {
         // Setup drag for left items
-        var leftItems = container.querySelectorAll('.left-items .match-item');
+        var leftItems = container.querySelectorAll('.o_match_questions .o_match_item');
         for (var i = 0; i < leftItems.length; i++) {
             var item = leftItems[i];
             
@@ -116,7 +126,7 @@
         }
         
         // Setup drop for right items
-        var rightItems = container.querySelectorAll('.right-items .match-item');
+        var rightItems = container.querySelectorAll('.o_match_answers .o_match_item');
         for (var k = 0; k < rightItems.length; k++) {
             var target = rightItems[k];
             
@@ -147,7 +157,7 @@
                     this.style.borderColor = '#c3e6cb';
                     
                     // Find and mark left item
-                    var leftItem = container.querySelector('.left-items .match-item[data-pair-id="' + pairId + '"]');
+                    var leftItem = container.querySelector('.o_match_questions .o_match_item[data-pair-id="' + pairId + '"]');
                     if (leftItem) {
                         leftItem.classList.add('matched');
                         leftItem.style.backgroundColor = '#d4edda';
@@ -184,7 +194,7 @@
         
         // Collect matched items
         var matches = [];
-        var matchedItems = container.querySelectorAll('.left-items .match-item[data-matched="true"]');
+        var matchedItems = container.querySelectorAll('.o_match_questions .o_match_item[data-matched="true"]');
         for (var i = 0; i < matchedItems.length; i++) {
             var item = matchedItems[i];
             matches.push({
@@ -193,10 +203,17 @@
             });
         }
         
-        // Update hidden input
-        var input = container.querySelector('input[name="question_' + questionId + '"]');
+        // Update hidden input if it exists
+        var input = document.querySelector('input[name="question_' + questionId + '"]');
         if (input) {
             input.value = JSON.stringify(matches);
+        } else {
+            // Create a hidden input if it doesn't exist
+            var hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'question_' + questionId;
+            hiddenInput.value = JSON.stringify(matches);
+            container.appendChild(hiddenInput);
         }
         
         // Send to server
@@ -330,24 +347,34 @@
     function addStyles() {
         var style = document.createElement('style');
         style.textContent = `
-            .match_following_container {
+            .o_survey_match_following_wrapper {
                 margin: 15px 0;
                 padding: 15px;
                 background-color: #f9f9fa;
                 border-radius: 4px;
             }
-            .left-items, .right-items {
+            .o_match_questions,
+            .o_match_answers {
                 min-height: 150px;
+                padding: 10px;
+                border: 1px dashed #ccc;
+                border-radius: 4px;
                 background-color: #fff;
+                margin-bottom: 10px;
             }
-            .match-item {
+            .o_match_item {
                 transition: all 0.2s ease;
                 cursor: pointer;
+                padding: 10px;
+                margin: 5px 0;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: #fff;
             }
-            .left-items .match-item {
+            .o_match_questions .o_match_item {
                 cursor: grab;
             }
-            .match-item.matched {
+            .o_match_item.matched {
                 background-color: #d4edda !important;
                 border-color: #c3e6cb !important;
             }

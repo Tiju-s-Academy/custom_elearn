@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <!-- Define the match following question template -->
-    <template id="match_following_question_template" name="Match Following Question">
-        <div class="o_survey_match_following_wrapper">
+    <template id="question_match_following" name="Match Following Question">
+        <div class="o_survey_match_following_wrapper" t-att-data-question-id="question.id">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Items</h5>
@@ -19,12 +19,10 @@
         </div>
     </template>
 
-    <!-- Inherit the correct template ID for the survey question -->
-    <template id="survey_question_match_following" inherit_id="survey.question">
-        <xpath expr="//div[hasclass('o_survey_question_content')]" position="inside">
-            <t t-if="question.question_type == 'match_following'">
-                <t t-call="custom_elearn.match_following_question_template"/>
-            </t>
+    <!-- Inherit question container as provided in the working example -->
+    <template id="question_container_inherit" inherit_id="survey.question_container">
+        <xpath expr="." position="inside">
+            <t t-if="question.question_type == 'match_following'" t-call="custom_elearn.question_match_following"/>
         </xpath>
     </template>
 </odoo>
