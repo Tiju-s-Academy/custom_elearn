@@ -8,6 +8,7 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         'dragstart .o_match_item': '_onDragStart',
         'dragover .o_match_questions, .o_match_answers': '_onDragOver',
         'drop .o_match_questions, .o_match_answers': '_onDrop',
+        'dragend .o_match_item': '_onDragEnd',
     },
 
     start: function () {
@@ -27,6 +28,11 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         ev.originalEvent.dataTransfer.setData('text/plain', $(ev.currentTarget).data('pair-id'));
         $(ev.currentTarget).addClass('dragging');
     },
+    
+    _onDragEnd: function (ev) {
+        $(ev.currentTarget).removeClass('dragging');
+        this.$('.drop-zone-active').removeClass('drop-zone-active');
+    },
 
     _onDragOver: function (ev) {
         ev.preventDefault();
@@ -44,7 +50,21 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
         this.$(`.o_match_item[data-pair-id="${pairId}"]`).not($item).remove();
 
         // Clone and append the dragged item
-        $target.append($item.clone());
+        const $clone = $item.clone();
+        $target.append($clone);
+        
+        // Mark as matched if dropped in answers area
+        if ($target.hasClass('o_match_answers')) {
+            $clone.addClass('matched');
+            $clone.attr('data-matched', 'true');
+            // Find original in questions area and mark it
+            const $original = this.$('.o_match_questions .o_match_item[data-pair-id="' + pairId + '"]');
+            if ($original.length) {
+                $original.addClass('matched');
+                $original.attr('data-matched', 'true');
+            }
+        }
+        
         $item.removeClass('dragging');
         $(ev.currentTarget).removeClass('drop-zone-active');
 
@@ -54,13 +74,17 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
 
     _updateMatches: function() {
         const matches = [];
-        this.$('.o_match_questions .o_match_item').each(function() {
+        this.$('.o_match_questions .o_match_item[data-matched="true"]').each(function() {
             matches.push({
                 pair_id: $(this).data('pair-id'),
-                position: $(this).index()
+                matched: true
             });
         });
-        this.$('input[type="hidden"]').val(JSON.stringify(matches));
+        
+        // Update the hidden input with the matches
+        const questionId = this.$el.data('question-id');
+        const inputName = 'question_' + questionId;
+        this.$(`input[name="${inputName}"]`).val(JSON.stringify(matches));
         
         // Submit the matches to the server
         this._submitMatches(matches);
@@ -76,6 +100,9 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
             return;
         }
         
+        // Debug output
+        console.log(`Submitting matches to server: questionId=${questionId}, token=${surveyToken}`, matches);
+        
         // Submit to server using Odoo's RPC mechanism
         this._rpc({
             route: `/survey/submit/${surveyToken}/${questionId}`,
@@ -90,11 +117,33 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     },
     
     _getSurveyToken: function() {
+        // First try to get from form action
+        const $form = $('.o_survey_form');
+        if ($form.length) {
+            const actionUrl = $form.attr('action');
+            if (actionUrl) {
+                const actionMatch = actionUrl.match(/\/survey\/([^\/]+)/);
+                if (actionMatch && actionMatch[1]) {
+                    return actionMatch[1];
+                }
+            }
+        }
+        
+        // Try from URL
         const url = window.location.href;
-        const match = url.match(/\/survey\/([^\/]+)/) || 
-                     url.match(/\/begin\/([^\/]+)/);
-                     
-        return match ? match[1] : null;
+        const urlMatch = url.match(/\/survey\/([^\/]+)/) || 
+                         url.match(/\/begin\/([^\/]+)/);
+        if (urlMatch && urlMatch[1]) {
+            return urlMatch[1];
+        }
+        
+        // Try from input field
+        const $tokenInput = $('input[name="token"]');
+        if ($tokenInput.length) {
+            return $tokenInput.val();
+        }
+        
+        return null;
     }
 });
 

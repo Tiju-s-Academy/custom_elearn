@@ -35,12 +35,31 @@ class SurveyMatchFollowing(http.Controller):
                 _logger.error(f"Question not found: {question_id}")
                 return []
             
-            # Get match following data
-            value_match_following = self._extract_match_following_data(post)
+            # Get the answer value from params - directly access params
+            value_match_following = None
+            if post and 'params' in post:
+                params = post.get('params', {})
+                value_match_following = params.get('value_match_following')
+                _logger.info(f"Received params from client: {params}")
+            
+            # Make sure we have a list
+            if not value_match_following:
+                _logger.warning("No match following data provided")
+                value_match_following = []
+            elif not isinstance(value_match_following, list):
+                # Try to parse if it's a string
+                try:
+                    value_match_following = json.loads(value_match_following)
+                except (json.JSONDecodeError, TypeError):
+                    _logger.warning("Invalid match following data format")
+                    value_match_following = []
+        
             _logger.info(f"Match following data: {value_match_following}")
             
-            # Save answer
+            # Convert to string for storage
             value_match_following_str = json.dumps(value_match_following)
+            
+            # Save answer
             self._save_answer(user_input, question, value_match_following_str)
             
             # Find next question - CRITICAL for survey flow
