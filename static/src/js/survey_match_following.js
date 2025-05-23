@@ -322,81 +322,360 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
     };
 });
 
-// Minimal implementation to avoid conflicts
+/**
+ * Match Following Questions for Odoo Surveys
+ * Simple implementation focusing on reliability
+ */
 (function() {
     'use strict';
     
-    // This function will run when DOM is loaded
+    // Initialize when the DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("Match Following: Initializing");
-        
-        // Wait for Odoo's survey to fully initialize
-        setTimeout(function() {
-            initMatchFollowing();
-        }, 1000);
+        console.log("Match Following: Ready to initialize");
+        // Use setTimeout to ensure Odoo's JS has loaded
+        setTimeout(initMatchFollowing, 1000);
     });
     
-    // Main initialization
+    // Main initialization function
     function initMatchFollowing() {
-        // Find questions
-        var questions = document.querySelectorAll('.js_question-wrapper');
-        console.log("Match Following: Found " + questions.length + " questions");
+        try {
+            console.log("Match Following: Initializing");
+            
+            // Add debug button to check if JS is working
+            addDebugButton();
+            
+            // Find match following questions
+            findAndProcessQuestions();
+            
+        } catch (e) {
+            console.error("Match Following Error:", e);
+        }
+    }
+    
+    // Find and process match following questions
+    function findAndProcessQuestions() {
+        // Select possible question containers
+        var questionWrappers = document.querySelectorAll('.js_question-wrapper, .o_survey_form_content .js_question');
         
-        // Process each question
-        for (var i = 0; i < questions.length; i++) {
-            var question = questions[i];
-            var questionType = '';
+        console.log("Match Following: Found " + questionWrappers.length + " question wrappers");
+        
+        // Process each question wrapper
+        for (var i = 0; i < questionWrappers.length; i++) {
+            var wrapper = questionWrappers[i];
             
-            // Try to get question type
-            var typeInput = question.querySelector('input[name="question_type"]');
-            if (typeInput) {
-                questionType = typeInput.value;
-            }
-            
-            // Process match following questions
-            if (questionType === 'match_following') {
+            // Check if this is a match following question
+            if (isMatchFollowingQuestion(wrapper)) {
                 console.log("Match Following: Found match following question");
-                
-                // Create UI if not exists
-                if (!question.querySelector('.match_following_ui')) {
-                    createUI(question);
-                }
+                processMatchFollowingQuestion(wrapper);
             }
         }
     }
     
-    // Create UI for match following question
-    function createUI(question) {
+    // Check if a wrapper contains a match following question
+    function isMatchFollowingQuestion(wrapper) {
+        // Check data attribute
+        if (wrapper.getAttribute('data-question-type') === 'match_following') {
+            return true;
+        }
+        
+        // Check hidden input
+        var typeInput = wrapper.querySelector('input[name="question_type"]');
+        return typeInput && typeInput.value === 'match_following';
+    }
+    
+    // Process a match following question
+    function processMatchFollowingQuestion(wrapper) {
+        // Skip if already processed
+        if (wrapper.querySelector('.match_following_container')) {
+            return;
+        }
+        
         // Get question ID
-        var questionId = getQuestionId(question);
+        var questionId = getQuestionId(wrapper);
         if (!questionId) {
             console.error("Match Following: Could not determine question ID");
             return;
         }
         
-        console.log("Match Following: Creating UI for question " + questionId);
+        console.log("Match Following: Processing question " + questionId);
         
-        // Create container element
-        var container = document.createElement('div');
-        container.className = 'match_following_ui';
-        container.innerHTML = '<p>Match Following question - UI will be added here</p>';
-        
-        // Add to question
-        question.appendChild(container);
+        // Create match following UI
+        createMatchFollowingUI(wrapper, questionId);
     }
     
-    // Helper to get question ID
-    function getQuestionId(question) {
-        // Try to get from inputs
-        var inputs = question.querySelectorAll('input[name^="question_"]');
-        for (var i = 0; i < inputs.length; i++) {
-            var name = inputs[i].name;
-            var match = name.match(/question_(\d+)/);
-            if (match && match[1]) {
-                return match[1];
+    // Create the match following UI
+    function createMatchFollowingUI(wrapper, questionId) {
+        // Create container
+        var container = document.createElement('div');
+        container.className = 'match_following_container';
+        container.setAttribute('data-question-id', questionId);
+        
+        // Create basic structure
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="match_left_items"></div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Match With</h5>
+                    <div class="match_right_items"></div>
+                </div>
+            </div>
+            <p class="text-muted mt-2 small">Drag items from left column to match with right column.</p>
+        `;
+        
+        // Style the container
+        container.style.padding = '15px';
+        container.style.backgroundColor = '#f8f9fa';
+        container.style.borderRadius = '4px';
+        container.style.marginTop = '15px';
+        
+        // Add to wrapper
+        wrapper.appendChild(container);
+        
+        // Add sample pairs
+        addSamplePairs(container);
+        
+        // Setup drag and drop
+        setupDragAndDrop(container);
+    }
+    
+    // Add sample pairs for testing
+    function addSamplePairs(container) {
+        var questionId = container.getAttribute('data-question-id');
+        var pairs = [
+            { id: 'pair1_' + questionId, left: 'Apple', right: 'Fruit' },
+            { id: 'pair2_' + questionId, left: 'Dog', right: 'Animal' },
+            { id: 'pair3_' + questionId, left: 'Car', right: 'Vehicle' }
+        ];
+        
+        var leftContainer = container.querySelector('.match_left_items');
+        var rightContainer = container.querySelector('.match_right_items');
+        
+        if (!leftContainer || !rightContainer) return;
+        
+        // Style containers
+        [leftContainer, rightContainer].forEach(function(elem) {
+            elem.style.minHeight = '150px';
+            elem.style.padding = '10px';
+            elem.style.border = '1px dashed #ccc';
+            elem.style.borderRadius = '4px';
+            elem.style.backgroundColor = '#fff';
+            elem.style.marginBottom = '10px';
+        });
+        
+        // Add items
+        for (var i = 0; i < pairs.length; i++) {
+            var pair = pairs[i];
+            
+            // Left item
+            var leftItem = document.createElement('div');
+            leftItem.className = 'match_item';
+            leftItem.setAttribute('draggable', 'true');
+            leftItem.setAttribute('data-pair-id', pair.id);
+            leftItem.textContent = pair.left;
+            styleMatchItem(leftItem);
+            leftContainer.appendChild(leftItem);
+            
+            // Right item
+            var rightItem = document.createElement('div');
+            rightItem.className = 'match_item';
+            rightItem.setAttribute('data-pair-id', pair.id);
+            rightItem.textContent = pair.right;
+            styleMatchItem(rightItem);
+            rightContainer.appendChild(rightItem);
+        }
+    }
+    
+    // Style a match item
+    function styleMatchItem(item) {
+        item.style.padding = '10px';
+        item.style.margin = '5px 0';
+        item.style.backgroundColor = '#fff';
+        item.style.border = '1px solid #ddd';
+        item.style.borderRadius = '4px';
+        item.style.cursor = item.hasAttribute('draggable') ? 'grab' : 'default';
+    }
+    
+    // Setup drag and drop functionality
+    function setupDragAndDrop(container) {
+        // Set up draggable items
+        var items = container.querySelectorAll('[draggable="true"]');
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            
+            // Drag start
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
+                this.style.opacity = '0.5';
+            });
+            
+            // Drag end
+            item.addEventListener('dragend', function() {
+                this.style.opacity = '1';
+            });
+        }
+        
+        // Set up drop targets
+        var rightItems = container.querySelectorAll('.match_right_items .match_item');
+        for (var j = 0; j < rightItems.length; j++) {
+            var target = rightItems[j];
+            
+            // Drag over
+            target.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = '#e8f4ff';
+                this.style.borderColor = '#b8daff';
+            });
+            
+            // Drag leave
+            target.addEventListener('dragleave', function() {
+                this.style.backgroundColor = '#fff';
+                this.style.borderColor = '#ddd';
+            });
+            
+            // Drop
+            target.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = '#fff';
+                this.style.borderColor = '#ddd';
+                
+                var pairId = e.dataTransfer.getData('text/plain');
+                if (!pairId) return;
+                
+                // Check if correct match
+                if (this.getAttribute('data-pair-id') === pairId) {
+                    // Correct match
+                    this.style.backgroundColor = '#d4edda';
+                    this.style.borderColor = '#c3e6cb';
+                    
+                    // Find and mark left item
+                    var leftItem = container.querySelector('.match_left_items .match_item[data-pair-id="' + pairId + '"]');
+                    if (leftItem) {
+                        leftItem.style.backgroundColor = '#d4edda';
+                        leftItem.style.borderColor = '#c3e6cb';
+                        leftItem.setAttribute('data-matched', 'true');
+                    }
+                    
+                    // Save match
+                    saveMatches(container);
+                } else {
+                    // Wrong match - show error feedback briefly
+                    this.style.backgroundColor = '#f8d7da';
+                    this.style.borderColor = '#f5c6cb';
+                    var self = this;
+                    setTimeout(function() {
+                        self.style.backgroundColor = '#fff';
+                        self.style.borderColor = '#ddd';
+                    }, 1000);
+                }
+            });
+        }
+    }
+    
+    // Save matches to server
+    function saveMatches(container) {
+        var questionId = container.getAttribute('data-question-id');
+        if (!questionId) return;
+        
+        // Get survey token
+        var surveyToken = getSurveyToken();
+        if (!surveyToken) {
+            console.error("Match Following: Could not determine survey token");
+            return;
+        }
+        
+        // Collect matches
+        var matches = [];
+        var matchedItems = container.querySelectorAll('.match_left_items .match_item[data-matched="true"]');
+        for (var i = 0; i < matchedItems.length; i++) {
+            var item = matchedItems[i];
+            matches.push({
+                pair_id: item.getAttribute('data-pair-id'),
+                matched: true
+            });
+        }
+        
+        console.log("Match Following: Saving matches for question " + questionId);
+        console.log("Match Following: Matches:", matches);
+        
+        // Send to server
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/survey/submit/' + surveyToken + '/' + questionId, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    console.log("Match Following: Submission successful");
+                } else {
+                    console.error("Match Following: Submission failed:", xhr.status);
+                }
+            }
+        };
+        
+        // Format data exactly as expected
+        var data = {
+            jsonrpc: "2.0",
+            method: "call",
+            params: {
+                value_match_following: matches
+            },
+            id: Date.now()
+        };
+        
+        xhr.send(JSON.stringify(data));
+    }
+    
+    // Get question ID from wrapper
+    function getQuestionId(wrapper) {
+        // Try data attribute
+        var id = wrapper.getAttribute('data-question-id');
+        
+        // Try input name
+        if (!id) {
+            var inputs = wrapper.querySelectorAll('input[name^="question_"]');
+            for (var i = 0; i < inputs.length; i++) {
+                var match = inputs[i].name.match(/question_(\d+)/);
+                if (match && match[1]) {
+                    id = match[1];
+                    break;
+                }
             }
         }
         
-        return null;
+        return id;
+    }
+    
+    // Get survey token from URL
+    function getSurveyToken() {
+        var url = window.location.href;
+        var match = url.match(/\/survey\/([^\/]+)/) || 
+                   url.match(/\/begin\/([^\/]+)/) || 
+                   url.match(/\/session\/([^\/]+)/);
+        return match ? match[1] : null;
+    }
+    
+    // Add debug button to verify JS is working
+    function addDebugButton() {
+        try {
+            // Find a good place to add the button
+            var target = document.querySelector('.o_survey_form_content');
+            if (!target) return;
+            
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-secondary mt-3';
+            btn.style.display = 'none'; // Hidden by default
+            btn.textContent = 'Match Following Debug';
+            btn.onclick = function() {
+                alert('Match Following JS is working');
+            };
+            
+            target.appendChild(btn);
+        } catch (e) {
+            console.error("Error adding debug button:", e);
+        }
     }
 })();
