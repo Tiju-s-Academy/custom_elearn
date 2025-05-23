@@ -15,42 +15,38 @@
 
 /* Match Following Container */
 .o_survey_match_following_wrapper {
-    margin: 20px 0;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f9f9fa;
+    border-radius: 4px;
 }
 
 /* Columns */
 .o_match_questions, 
 .o_match_answers {
     min-height: 150px;
+    padding: 10px;
     border: 1px dashed #ccc;
     border-radius: 4px;
-    padding: 15px;
+    background-color: #fff;
     margin-bottom: 15px;
-    background-color: #f9f9f9;
-    transition: all 0.2s ease-in-out;
 }
 
 /* Active drop zone */
 .drop-zone-active {
-    background-color: #e8f4ff;
-    border-color: #b8daff;
+    background-color: #e8f4ff !important;
+    border-color: #b8daff !important;
 }
 
 /* Items */
 .o_match_item {
-    padding: 10px 15px;
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ddd;
+    background-color: #fff;
     border-radius: 4px;
-    margin-bottom: 10px;
-    cursor: grab;
-    transition: all 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 /* Item hover and drag states */
@@ -59,15 +55,13 @@
 }
 
 .o_match_item.dragging {
-    opacity: 0.6;
-    transform: scale(0.98);
-    cursor: grabbing;
+    opacity: 0.5;
 }
 
 /* Matched items */
 .o_match_item.matched {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
+    background-color: #d4edda !important;
+    border-color: #c3e6cb !important;
 }
 
 .o_match_item.matched:hover {

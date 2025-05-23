@@ -1,6 +1,6 @@
 /**
  * Match Following Component for Surveys
- * Vanilla JS implementation with no module dependencies
+ * Vanilla JS implementation with no dependencies 
  */
 (function() {
     'use strict';
@@ -21,112 +21,38 @@
             return;
         }
         
-        // Add CSS styles
-        addStyles();
+        // Process all match following containers
+        var containers = document.querySelectorAll('.o_survey_match_following_wrapper');
+        console.log(`Match Following: Found ${containers.length} containers`);
         
-        // Process all question containers
-        findAndProcessQuestions();
+        containers.forEach(function(container) {
+            processMatchFollowingContainer(container);
+        });
         
         // Monitor for dynamically added questions
         setupMutationObserver();
     }
     
-    // Find and process all match following questions
-    function findAndProcessQuestions() {
-        var selectors = [
-            '.js_question-wrapper', 
-            '.js_question',
-            '.o_survey_form_content .question-container'
-        ];
-        
-        var processed = false;
-        
-        selectors.forEach(function(selector) {
-            var questions = document.querySelectorAll(selector);
-            if (questions.length > 0) {
-                console.log(`Match Following: Found ${questions.length} potential questions with ${selector}`);
-                
-                questions.forEach(function(question) {
-                    processed = processQuestion(question) || processed;
-                });
-            }
-        });
-        
-        return processed;
-    }
-    
-    // Process a single question
-    function processQuestion(question) {
+    // Process a match following container
+    function processMatchFollowingContainer(container) {
         // Skip if already processed
-        if (question.hasAttribute('data-match-following-processed')) {
-            return false;
-        }
-        
-        // Check if this is a match following question
-        var questionType = '';
-        var typeInput = question.querySelector('input[name="question_type"]');
-        if (typeInput) {
-            questionType = typeInput.value;
-        }
-        
-        // Mark as processed regardless of type
-        question.setAttribute('data-match-following-processed', 'true');
-        
-        // Only continue for match following questions
-        if (questionType === 'match_following') {
-            console.log('Match Following: Found match following question');
-            createMatchFollowingUI(question);
-            return true;
-        }
-        
-        return false;
-    }
-    
-    // Create the match following UI
-    function createMatchFollowingUI(question) {
-        // Get question ID
-        var questionId = getQuestionId(question);
-        if (!questionId) {
-            console.error('Match Following: Could not determine question ID');
+        if (container.hasAttribute('data-processed')) {
             return;
         }
         
-        // Create container
-        var container = document.createElement('div');
-        container.className = 'match_following_container mt-3';
-        container.setAttribute('data-question-id', questionId);
+        console.log('Match Following: Processing container');
         
-        // Create basic structure
-        container.innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">Items</div>
-                        <div class="card-body p-2 left-items"></div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">Match With</div>
-                        <div class="card-body p-2 right-items"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="text-muted small mb-3">
-                Drag items from left column to match with items on right.
-            </div>
-            <input type="hidden" name="question_${questionId}" value="[]">
-            <div class="match-status"></div>
-        `;
+        // Get question ID
+        var questionId = container.querySelector('.o_match_questions').getAttribute('data-question-id');
         
-        // Add to question
-        question.appendChild(container);
-        
-        // Add sample items
+        // Add sample items (in a real implementation, these would come from the server)
         addSampleItems(container, questionId);
         
         // Setup drag and drop
         setupDragAndDrop(container);
+        
+        // Mark as processed
+        container.setAttribute('data-processed', 'true');
     }
     
     // Add sample items to container

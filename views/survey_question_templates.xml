@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Define the match following question template -->
+    <template id="match_following_question_template" name="Match Following Question">
+        <div class="o_survey_match_following_wrapper">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Items</h5>
+                    <div class="o_match_questions" t-att-data-question-id="question.id"/>
+                </div>
+                <div class="col-md-6">
+                    <h5>Match With</h5>
+                    <div class="o_match_answers" t-att-data-question-id="question.id"/>
+                </div>
+            </div>
+            <div class="text-muted mt-2 mb-3">
+                <small>Drag items from left to match with items on right.</small>
+            </div>
+        </div>
+    </template>
+
+    <!-- Inherit the correct template ID for the survey question -->
+    <template id="survey_question_match_following" inherit_id="survey.question">
+        <xpath expr="//div[hasclass('o_survey_question_content')]" position="inside">
+            <t t-if="question.question_type == 'match_following'">
+                <t t-call="custom_elearn.match_following_question_template"/>
+            </t>
+        </xpath>
+    </template>
+</odoo>
