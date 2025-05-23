@@ -88,9 +88,6 @@ publicWidget.registry.SurveyMatchFollowing = publicWidget.Widget.extend({
     }
 });
 
-// Remove the patching code that's causing issues
-// The patch functionality would need Odoo 17-specific implementation
-
 export default {
     SurveyMatchFollowing: publicWidget.registry.SurveyMatchFollowing
 };
