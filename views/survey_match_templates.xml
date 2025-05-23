@@ -25,4 +25,10 @@
             <p class="text-muted mt-2">Drag items from left to match with items on the right.</p>
         </div>
     </template>
+
+    <template id="survey_layout_match_following" inherit_id="survey.layout">
+        <xpath expr="//head" position="inside">
+            <script type="text/javascript" src="/custom_elearn/static/src/js/survey_match_following.js"/>
+        </xpath>
+    </template>
 </odoo>

@@ -322,43 +322,81 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
     };
 });
 
-// Add styles for match following
-document.addEventListener('DOMContentLoaded', function() {
-    var style = document.createElement('style');
-    style.textContent = `
-        .match_following_container {
-            margin: 15px 0;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
+// Minimal implementation to avoid conflicts
+(function() {
+    'use strict';
+    
+    // This function will run when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Match Following: Initializing");
+        
+        // Wait for Odoo's survey to fully initialize
+        setTimeout(function() {
+            initMatchFollowing();
+        }, 1000);
+    });
+    
+    // Main initialization
+    function initMatchFollowing() {
+        // Find questions
+        var questions = document.querySelectorAll('.js_question-wrapper');
+        console.log("Match Following: Found " + questions.length + " questions");
+        
+        // Process each question
+        for (var i = 0; i < questions.length; i++) {
+            var question = questions[i];
+            var questionType = '';
+            
+            // Try to get question type
+            var typeInput = question.querySelector('input[name="question_type"]');
+            if (typeInput) {
+                questionType = typeInput.value;
+            }
+            
+            // Process match following questions
+            if (questionType === 'match_following') {
+                console.log("Match Following: Found match following question");
+                
+                // Create UI if not exists
+                if (!question.querySelector('.match_following_ui')) {
+                    createUI(question);
+                }
+            }
         }
-        .o_match_questions, .o_match_answers {
-            min-height: 150px;
-            padding: 10px;
-            border: 1px dashed #ccc;
-            border-radius: 4px;
-            background-color: #fff;
+    }
+    
+    // Create UI for match following question
+    function createUI(question) {
+        // Get question ID
+        var questionId = getQuestionId(question);
+        if (!questionId) {
+            console.error("Match Following: Could not determine question ID");
+            return;
         }
-        .o_match_item {
-            padding: 10px;
-            margin: 5px 0;
-            background-color: #fff;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: grab;
+        
+        console.log("Match Following: Creating UI for question " + questionId);
+        
+        // Create container element
+        var container = document.createElement('div');
+        container.className = 'match_following_ui';
+        container.innerHTML = '<p>Match Following question - UI will be added here</p>';
+        
+        // Add to question
+        question.appendChild(container);
+    }
+    
+    // Helper to get question ID
+    function getQuestionId(question) {
+        // Try to get from inputs
+        var inputs = question.querySelectorAll('input[name^="question_"]');
+        for (var i = 0; i < inputs.length; i++) {
+            var name = inputs[i].name;
+            var match = name.match(/question_(\d+)/);
+            if (match && match[1]) {
+                return match[1];
+            }
         }
-        .o_match_item.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-        .o_match_item.matched {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-        }
-        .drop-zone-active {
-            background-color: #e8f4ff;
-            border-color: #b8daff;
-        }
-    `;
-    document.head.appendChild(style);
-});
+        
+        return null;
+    }
+})();
