@@ -323,163 +323,180 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
 });
 
 /**
- * Simple Match Following implementation for Odoo surveys
- * Uses vanilla JS for maximum compatibility
+ * Match Following implementation for Odoo surveys
+ * Designed to work with Odoo's survey navigation system
  */
 (function() {
     'use strict';
     
-    // Initialize when document is fully loaded
+    // Initialize when document is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("Match Following: Document ready");
-        // Use a timeout to ensure Odoo's JS is fully loaded
-        setTimeout(initialize, 1000);
+        console.log("Match Following: Document loaded");
+        
+        // Use timeout to make sure Odoo's JS is loaded first
+        setTimeout(function() {
+            initMatchFollowing();
+            
+            // Also monitor for AJAX page changes in survey
+            monitorSurveyChanges();
+        }, 1000);
     });
     
-    /**
-     * Main initialization function
-     */
-    function initialize() {
-        console.log("Match Following: Initializing");
-        
-        // Check whether this page contains a survey form
-        if (!document.querySelector('.o_survey_form')) {
-            console.log("Match Following: No survey form found on this page");
-            return;
-        }
-        
-        // Find question containers
-        var questionWrappers = document.querySelectorAll('.js_question-wrapper');
-        console.log("Match Following: Found " + questionWrappers.length + " question wrappers");
-        
-        // Process each question
-        for (var i = 0; i < questionWrappers.length; i++) {
-            processQuestion(questionWrappers[i]);
-        }
-    }
-    
-    /**
-     * Process a question wrapper to check if it's a match following question
-     */
-    function processQuestion(wrapper) {
-        // Skip if already processed
-        if (wrapper.getAttribute('data-match-following-processed')) {
-            return;
-        }
-        
-        // Check question type
-        var questionType = '';
-        var typeInput = wrapper.querySelector('input[name="question_type"]');
-        if (typeInput) {
-            questionType = typeInput.value;
-        }
-        
-        if (questionType === 'match_following') {
-            console.log("Match Following: Found match following question");
-            createMatchFollowingUI(wrapper);
-            // Mark as processed
-            wrapper.setAttribute('data-match-following-processed', 'true');
-        }
-    }
-    
-    /**
-     * Create match following UI for a question
-     */
-    function createMatchFollowingUI(wrapper) {
-        // Get question ID
-        var questionId = '';
-        var inputs = wrapper.querySelectorAll('input[name^="question_"]');
-        if (inputs.length > 0) {
-            var nameMatch = inputs[0].name.match(/question_(\d+)/);
-            if (nameMatch && nameMatch[1]) {
-                questionId = nameMatch[1];
+    // Initialize match following on current page
+    function initMatchFollowing() {
+        try {
+            console.log("Match Following: Initializing...");
+            
+            // Find and process match following questions
+            var questions = findMatchFollowingQuestions();
+            
+            if (questions.length === 0) {
+                console.log("Match Following: No match following questions found");
+                return;
             }
+            
+            console.log(`Match Following: Found ${questions.length} match following questions`);
+            
+            // Process each match following question
+            questions.forEach(function(question) {
+                processMatchFollowingQuestion(question);
+            });
+            
+        } catch (error) {
+            console.error("Match Following error:", error);
         }
+    }
+    
+    // Find match following questions on the page
+    function findMatchFollowingQuestions() {
+        var matchFollowingQuestions = [];
         
+        // Look for question wrappers
+        var questionWrappers = document.querySelectorAll('.js_question-wrapper, .o_survey_form .js_question');
+        
+        // Check each for match following type
+        questionWrappers.forEach(function(wrapper) {
+            // Check if already processed
+            if (wrapper.getAttribute('data-match-following-processed')) {
+                return;
+            }
+            
+            // Check question type
+            var questionType = '';
+            var typeInput = wrapper.querySelector('input[name="question_type"]');
+            if (typeInput) {
+                questionType = typeInput.value;
+            }
+            
+            if (questionType === 'match_following') {
+                matchFollowingQuestions.push(wrapper);
+            }
+        });
+        
+        return matchFollowingQuestions;
+    }
+    
+    // Process a match following question
+    function processMatchFollowingQuestion(questionWrapper) {
+        // Mark as processed to avoid duplicates
+        questionWrapper.setAttribute('data-match-following-processed', 'true');
+        
+        // Get question ID
+        var questionId = getQuestionId(questionWrapper);
         if (!questionId) {
-            console.error("Match Following: Couldn't determine question ID");
+            console.error("Match Following: Could not determine question ID");
             return;
         }
         
-        console.log("Match Following: Creating UI for question " + questionId);
+        console.log(`Match Following: Processing question ${questionId}`);
         
-        // Create container
-        var container = document.createElement('div');
-        container.className = 'match_following_container';
-        container.setAttribute('data-question-id', questionId);
+        // Create match following container
+        var container = createMatchFollowingContainer(questionWrapper, questionId);
         
-        // Create HTML structure
-        var html = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Items</h5>
-                    <div class="match_left_items bg-light border rounded p-2 mb-2" style="min-height:150px;"></div>
-                </div>
-                <div class="col-md-6">
-                    <h5>Match With</h5>
-                    <div class="match_right_items bg-light border rounded p-2 mb-2" style="min-height:150px;"></div>
-                </div>
-            </div>
-            <div class="match_status text-muted small mt-2">
-                Drag items from left to match with items on the right.
-            </div>
-        `;
-        
-        container.innerHTML = html;
-        
-        // Add to the wrapper
-        wrapper.appendChild(container);
-        
-        // Add test items
-        addTestItems(container);
+        // Add sample pairs
+        addMatchingPairs(container, questionId);
         
         // Setup drag and drop
         setupDragDrop(container);
     }
     
-    /**
-     * Add test items to the match following container
-     */
-    function addTestItems(container) {
-        var questionId = container.getAttribute('data-question-id');
-        var leftContainer = container.querySelector('.match_left_items');
-        var rightContainer = container.querySelector('.match_right_items');
+    // Create match following container
+    function createMatchFollowingContainer(wrapper, questionId) {
+        var container = document.createElement('div');
+        container.className = 'match_following_container';
+        container.setAttribute('data-question-id', questionId);
         
+        // Add HTML structure
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">Items</div>
+                        <div class="card-body left-items"></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">Match With</div>
+                        <div class="card-body right-items"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-text text-muted mb-3">
+                Drag items from the left column to match with items in the right column.
+            </div>
+            <input type="hidden" name="question_${questionId}" value="[]">
+        `;
+        
+        // Add to wrapper
+        wrapper.appendChild(container);
+        
+        return container;
+    }
+    
+    // Add sample matching pairs to container
+    function addMatchingPairs(container, questionId) {
+        var leftContainer = container.querySelector('.left-items');
+        var rightContainer = container.querySelector('.right-items');
+        
+        // Sample data - in a real implementation, this would come from the server
         var items = [
             { id: 'pair1_' + questionId, left: 'Apple', right: 'Fruit' },
             { id: 'pair2_' + questionId, left: 'Dog', right: 'Animal' },
-            { id: 'pair3_' + questionId, left: 'Car', right: 'Vehicle' }
+            { id: 'pair3_' + questionId, left: 'Car', right: 'Vehicle' },
+            { id: 'pair4_' + questionId, left: 'Python', right: 'Programming Language' },
         ];
         
-        // Create left items
+        // Shuffle right items for more challenge
+        var rightItems = shuffleArray(items.slice());
+        
+        // Add left items
         items.forEach(function(item) {
             var leftItem = document.createElement('div');
-            leftItem.className = 'match_item bg-white border rounded p-2 mb-2';
+            leftItem.className = 'match-item mb-2 p-2 border rounded bg-white';
             leftItem.setAttribute('draggable', 'true');
             leftItem.setAttribute('data-pair-id', item.id);
             leftItem.textContent = item.left;
             leftContainer.appendChild(leftItem);
         });
         
-        // Create right items (shuffled)
-        shuffle(items).forEach(function(item) {
+        // Add right items (shuffled)
+        rightItems.forEach(function(item) {
             var rightItem = document.createElement('div');
-            rightItem.className = 'match_item bg-white border rounded p-2 mb-2';
+            rightItem.className = 'match-item mb-2 p-2 border rounded bg-white';
             rightItem.setAttribute('data-pair-id', item.id);
             rightItem.textContent = item.right;
             rightContainer.appendChild(rightItem);
         });
     }
     
-    /**
-     * Set up drag and drop functionality
-     */
+    // Set up drag and drop functionality
     function setupDragDrop(container) {
-        // Get draggable items
-        var dragItems = container.querySelectorAll('.match_left_items .match_item');
+        // Get draggable items (left column)
+        var draggableItems = container.querySelectorAll('.left-items .match-item');
         
-        // Set up drag events
-        dragItems.forEach(function(item) {
+        // Setup drag events
+        draggableItems.forEach(function(item) {
             item.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('text/plain', this.getAttribute('data-pair-id'));
                 this.classList.add('dragging');
@@ -489,78 +506,93 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
             item.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
                 this.style.opacity = '';
+                
+                // Remove active styling from drop zones
+                container.querySelectorAll('.drop-active').forEach(function(el) {
+                    el.classList.remove('drop-active');
+                    el.style.backgroundColor = '';
+                });
             });
         });
         
-        // Set up drop targets
-        var dropTargets = container.querySelectorAll('.match_right_items .match_item');
+        // Setup drop targets (right column)
+        var dropTargets = container.querySelectorAll('.right-items .match-item');
         
         dropTargets.forEach(function(target) {
+            // Allow drop
             target.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                this.classList.add('drag-over');
+                this.classList.add('drop-active');
                 this.style.backgroundColor = '#e8f4ff';
             });
             
+            // Reset style on leave
             target.addEventListener('dragleave', function() {
-                this.classList.remove('drag-over');
+                this.classList.remove('drop-active');
                 this.style.backgroundColor = '';
             });
             
+            // Handle drop
             target.addEventListener('drop', function(e) {
                 e.preventDefault();
-                this.classList.remove('drag-over');
+                this.classList.remove('drop-active');
                 this.style.backgroundColor = '';
                 
                 var pairId = e.dataTransfer.getData('text/plain');
+                if (!pairId) return;
                 
-                // Check if this is the correct match
+                // Check if correct match
                 if (this.getAttribute('data-pair-id') === pairId) {
-                    // Mark as matched
+                    // Correct match!
                     this.classList.add('matched');
                     this.style.backgroundColor = '#d4edda';
+                    this.style.borderColor = '#c3e6cb';
                     
-                    // Find and mark left item
-                    var leftItem = container.querySelector(`.match_left_items .match_item[data-pair-id="${pairId}"]`);
+                    // Find and mark the left item
+                    var leftItem = container.querySelector(`.left-items .match-item[data-pair-id="${pairId}"]`);
                     if (leftItem) {
                         leftItem.classList.add('matched');
                         leftItem.style.backgroundColor = '#d4edda';
+                        leftItem.style.borderColor = '#c3e6cb';
                         leftItem.setAttribute('data-matched', 'true');
                     }
                     
-                    // Save matches
+                    // Update matches
                     saveMatches(container);
+                    
+                    // Check if all matches are complete
+                    checkAllMatched(container);
                 } else {
-                    // Wrong match
-                    this.classList.add('wrong-match');
+                    // Incorrect match - show brief error
                     this.style.backgroundColor = '#f8d7da';
+                    this.style.borderColor = '#f5c6cb';
                     
                     // Reset after a moment
                     var self = this;
                     setTimeout(function() {
-                        self.classList.remove('wrong-match');
                         self.style.backgroundColor = '';
-                    }, 1000);
+                        self.style.borderColor = '';
+                    }, 800);
                 }
             });
         });
     }
     
-    /**
-     * Save match data to the server
-     */
+    // Save matches to hidden input and submit to server
     function saveMatches(container) {
-        // Get question ID
         var questionId = container.getAttribute('data-question-id');
         if (!questionId) return;
         
         // Get survey token
         var surveyToken = getSurveyToken();
-        if (!surveyToken) return;
+        if (!surveyToken) {
+            console.error("Match Following: Could not determine survey token");
+            return;
+        }
         
-        // Get matched items
+        // Collect all matched pairs
         var matches = [];
-        var matchedItems = container.querySelectorAll('.match_left_items .match_item[data-matched="true"]');
+        var matchedItems = container.querySelectorAll('.left-items .match-item[data-matched="true"]');
         
         matchedItems.forEach(function(item) {
             matches.push({
@@ -569,8 +601,13 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
             });
         });
         
-        // Update status
-        updateMatchStatus(container, matches);
+        // Update hidden input
+        var hiddenInput = container.querySelector(`input[name="question_${questionId}"]`);
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(matches);
+        }
+        
+        console.log(`Match Following: Saving ${matches.length} matches for question ${questionId}`);
         
         // Send to server
         var xhr = new XMLHttpRequest();
@@ -587,6 +624,7 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
             }
         };
         
+        // Format data as expected by server
         var data = {
             jsonrpc: "2.0",
             method: "call",
@@ -596,49 +634,120 @@ odoo.define('custom_elearn.survey_match_following', function (require) {
             id: new Date().getTime()
         };
         
-        console.log("Match Following: Sending data:", data);
         xhr.send(JSON.stringify(data));
     }
     
-    /**
-     * Update match status display
-     */
-    function updateMatchStatus(container, matches) {
-        var statusElem = container.querySelector('.match_status');
-        if (!statusElem) return;
+    // Check if all items are matched and show complete message
+    function checkAllMatched(container) {
+        var totalItems = container.querySelectorAll('.left-items .match-item').length;
+        var matchedItems = container.querySelectorAll('.left-items .match-item[data-matched="true"]').length;
         
-        var total = container.querySelectorAll('.match_left_items .match_item').length;
-        var matched = matches.length;
-        
-        if (matched === total) {
-            statusElem.innerHTML = '<div class="alert alert-success py-1 px-2">All items matched correctly!</div>';
-        } else {
-            statusElem.textContent = matched + ' of ' + total + ' items matched';
+        if (totalItems > 0 && totalItems === matchedItems) {
+            // All items matched!
+            console.log("Match Following: All items matched!");
+            
+            // Find or create status message
+            var statusElem = container.querySelector('.match-status');
+            if (!statusElem) {
+                statusElem = document.createElement('div');
+                statusElem.className = 'match-status alert alert-success mt-3';
+                container.appendChild(statusElem);
+            }
+            
+            statusElem.textContent = 'All items matched correctly!';
+            
+            // Find next button if exists
+            var nextButton = document.querySelector('.o_survey_form button[type="submit"]');
+            if (nextButton) {
+                // Highlight the next button
+                nextButton.classList.add('btn-primary');
+                nextButton.classList.remove('btn-secondary');
+                
+                // Add a little message to encourage proceeding
+                var helpText = document.createElement('div');
+                helpText.className = 'text-muted mt-2';
+                helpText.textContent = 'Click "Next" to continue to the next question.';
+                container.appendChild(helpText);
+            }
         }
     }
     
-    /**
-     * Get survey token from URL
-     */
+    // Monitor for survey page changes (AJAX)
+    function monitorSurveyChanges() {
+        // Try to find the survey form content container
+        var surveyContent = document.querySelector('.o_survey_form_content');
+        if (!surveyContent) return;
+        
+        // Create a mutation observer to watch for DOM changes
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                // Check if nodes were added
+                if (mutation.addedNodes.length > 0) {
+                    // Check if any of the added nodes might be a question
+                    Array.from(mutation.addedNodes).forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            // If this might be a question wrapper or contains one
+                            if (node.classList && (
+                                node.classList.contains('js_question-wrapper') || 
+                                node.classList.contains('js_question') ||
+                                node.querySelector('.js_question-wrapper, .js_question')
+                            )) {
+                                console.log("Match Following: Detected new question added");
+                                // Initialize match following after a brief delay
+                                setTimeout(initMatchFollowing, 300);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Start observing
+        observer.observe(surveyContent, {
+            childList: true,
+            subtree: true
+        });
+        
+        console.log("Match Following: Monitoring survey for changes");
+    }
+    
+    // Helper: Get question ID
+    function getQuestionId(wrapper) {
+        // Try data attribute
+        var id = wrapper.getAttribute('data-question-id');
+        
+        // Try input name
+        if (!id) {
+            var inputs = wrapper.querySelectorAll('input[name^="question_"]');
+            
+            if (inputs.length > 0) {
+                var match = inputs[0].name.match(/question_(\d+)/);
+                if (match && match[1]) {
+                    id = match[1];
+                }
+            }
+        }
+        
+        return id;
+    }
+    
+    // Helper: Get survey token from URL
     function getSurveyToken() {
         var url = window.location.href;
         var match = url.match(/\/survey\/([^\/]+)/) || 
-                    url.match(/\/begin\/([^\/]+)/);
-                    
+                    url.match(/\/begin\/([^\/]+)/) || 
+                    url.match(/\/session\/([^\/]+)/);
         return match ? match[1] : null;
     }
     
-    /**
-     * Shuffle an array
-     */
-    function shuffle(array) {
-        var result = array.slice();
-        for (var i = result.length - 1; i > 0; i--) {
+    // Helper: Shuffle array
+    function shuffleArray(array) {
+        for (var i = array.length - 1; i > 0; i--) {
             var j = Math.floor(Math.random() * (i + 1));
-            var temp = result[i];
-            result[i] = result[j];
-            result[j] = temp;
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
         }
-        return result;
+        return array;
     }
 })();
